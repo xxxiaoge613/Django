@@ -1,0 +1,26 @@
+# Virtual environment
+.venv/
+
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Django
+*.log
+logs/
+db.sqlite3
+
+# Debug
+debug_output/
+*.html
+
+# Eggs
+django_news_analysis.egg-info/
+
+# Other
+*.txt
+*.md
+*.lock

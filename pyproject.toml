@@ -1,0 +1,15 @@
+[project]
+name = "django-news-analysis"
+description = "Django news analysis project"
+version = "0.1.0"
+authors = [{ name = "Developer", email = "developer@example.com" }]
+dependencies = [
+    "django>=4.0",
+    "requests>=2.28",
+    "beautifulsoup4>=4.11",
+    "playwright>=1.30"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
