@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, now, timezone
 import logging
 import time
 import random
@@ -83,36 +83,45 @@ class BaseSpider(ABC):
     def parse_datetime(self, date_str):
         """解析日期字符串为datetime对象，支持相对时间格式"""
         if not date_str:
-            return make_aware(datetime.now())
+            return now()
         
         try:
             # 清理字符串，移除不必要的字符
             date_str = date_str.strip().replace('\n', '').replace('\r', '')
             
-            # 获取当前时间
-            now = datetime.now()
+            # 特殊处理36氪RSS feed的日期格式：2025-12-08 13:57:12  +0800
+            # 处理多个空格的情况
+            if re.search(r'\s+\+0800', date_str):
+                # 使用正则表达式提取不带时区的日期时间部分
+                dt_str = re.sub(r'\s+\+0800', '', date_str).strip()
+                # 解析日期时间
+                publish_time = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+                return make_aware(publish_time)
+            
+            # 获取当前时间，使用不带时区的datetime.now()
+            current_time = datetime.now()
             
             # 处理不同的时间格式
             if "分钟前" in date_str:
                 minutes = re.search(r'(\d+)', date_str)
                 if minutes:
                     minutes = int(minutes.group(1))
-                    publish_time = now - timedelta(minutes=minutes)
+                    publish_time = current_time - timedelta(minutes=minutes)
                     return make_aware(publish_time)
             elif "小时前" in date_str:
                 hours = re.search(r'(\d+)', date_str)
                 if hours:
                     hours = int(hours.group(1))
-                    publish_time = now - timedelta(hours=hours)
+                    publish_time = current_time - timedelta(hours=hours)
                     return make_aware(publish_time)
             elif "天前" in date_str:
                 days = re.search(r'(\d+)', date_str)
                 if days:
                     days = int(days.group(1))
-                    publish_time = now - timedelta(days=days)
+                    publish_time = current_time - timedelta(days=days)
                     return make_aware(publish_time)
             elif "昨天" in date_str:
-                publish_time = now - timedelta(days=1)
+                publish_time = current_time - timedelta(days=1)
                 # 尝试提取具体时间
                 time_part = re.search(r'(\d+:\d+(?::\d+)?)', date_str)
                 if time_part:
@@ -128,7 +137,7 @@ class BaseSpider(ABC):
                         publish_time = datetime.strptime(dt_str, '%Y-%m-%d %H:%M')
                 return make_aware(publish_time)
             elif "前天" in date_str:
-                publish_time = now - timedelta(days=2)
+                publish_time = current_time - timedelta(days=2)
                 # 尝试提取具体时间
                 time_part = re.search(r'(\d+:\d+(?::\d+)?)', date_str)
                 if time_part:
@@ -170,6 +179,15 @@ class BaseSpider(ABC):
                 dt_str = f"2025-{date_str}"
                 publish_time = datetime.strptime(dt_str, '%Y-%m-%d')
                 return make_aware(publish_time)
+            elif re.match(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\s+\+\d{4}', date_str):
+                # 专门处理36氪RSS feed的日期格式：2025-12-08 13:57:12  +0800
+                try:
+                    # 移除多余的空格，保留时区前的一个空格
+                    date_str_clean = re.sub(r'\s+\+', ' +', date_str)
+                    publish_time = datetime.strptime(date_str_clean, '%Y-%m-%d %H:%M:%S %z')
+                    return make_aware(publish_time)
+                except ValueError:
+                    pass
             else:
                 # 尝试多种绝对日期格式
                 date_formats = [
@@ -177,7 +195,10 @@ class BaseSpider(ABC):
                     '%Y/%m/%d',
                     '%m/%d/%Y %H:%M:%S',
                     '%m/%d/%Y',
-                    '%H:%M'
+                    '%H:%M',
+                    '%Y-%m-%d %H:%M:%S %z',  # 处理带时区偏移的日期格式，如 2025-12-08 13:57:12 +0800
+                    '%a, %d %b %Y %H:%M:%S %z',  # 处理 RSS 标准日期格式，如 Wed, 08 Dec 2025 13:57:12 +0800
+                    '%a, %d %b %Y %H:%M:%S %Z'  # 处理 RFC 822 格式，如 Mon, 08 Dec 2025 07:20:03 GMT
                 ]
                 
                 for fmt in date_formats:
@@ -185,13 +206,13 @@ class BaseSpider(ABC):
                         dt = datetime.strptime(date_str, fmt)
                         # 如果年份不完整，添加当前年份
                         if dt.year == 1900:
-                            dt = dt.replace(year=now.year)
+                            dt = dt.replace(year=current_time.year)
                         return make_aware(dt)
                     except ValueError:
                         continue
                 
                 logger.warning(f"无法解析日期格式: {date_str}")
-                return make_aware(now)
+                return make_aware(datetime.now())
         except Exception as e:
             logger.error(f"解析日期失败: {e}")
             return make_aware(datetime.now())

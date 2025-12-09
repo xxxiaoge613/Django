@@ -10,9 +10,9 @@ from .models import (
 
 # 自定义新闻管理界面
 class NewsAdmin(admin.ModelAdmin):
-    list_display = ('title', 'platform', 'publish_time', 'is_valid', 'is_ad')
+    list_display = ('title', 'platform', 'publish_time', 'is_valid')
     search_fields = ('title', 'content', 'author')
-    list_filter = ('platform', 'is_valid', 'is_ad', 'publish_time')
+    list_filter = ('platform', 'is_valid', 'publish_time')
     date_hierarchy = 'publish_time'
     ordering = ('-publish_time',)
 

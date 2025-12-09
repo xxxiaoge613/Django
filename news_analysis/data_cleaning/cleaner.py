@@ -9,21 +9,7 @@ class DataCleaner:
     """数据清洗器，用于清洗和预处理新闻数据"""
     
     def __init__(self):
-        # 广告关键词列表
-        self.ad_keywords = [
-            '广告', '推广', '赞助', '招商', '加盟', '代理',
-            '热销', '包邮', '限时', '优惠', '促销', '抢购',
-            '正品', '特价', '清仓', '甩卖', '折扣', '返利'
-        ]
-        
-        # 广告模式正则表达式
-        self.ad_patterns = [
-            re.compile(r'【.*?广告.*?】'),
-            re.compile(r'\[.*?推广.*?\]'),
-            re.compile(r'广告.*?热线|咨询电话'),
-            re.compile(r'QQ群|微信群|微信号|公众号'),
-            re.compile(r'点击链接|访问官网|下载APP')
-        ]
+        pass
     
     def clean_news_data(self, news_data):
         """清洗单条新闻数据"""
@@ -35,17 +21,13 @@ class DataCleaner:
             if not news_data.get('content'):
                 news_data['content'] = ''
             
-            # 2. 识别广告新闻
-            is_ad = self._is_ad_news(news_data)
-            news_data['is_ad'] = is_ad
-            
-            # 3. 数据标准化
+            # 2. 数据标准化
             news_data = self._standardize_data(news_data)
             
-            # 4. 清洗新闻内容
+            # 3. 清洗新闻内容
             news_data['content'] = self._clean_content(news_data['content'])
             
-            # 5. 计算数据质量分数
+            # 4. 计算数据质量分数
             quality_score = self._calculate_quality_score(news_data)
             
             return news_data, quality_score
@@ -71,11 +53,10 @@ class DataCleaner:
         
         try:
             # 读取所有未清洗的新闻
-            news_list = News.objects.filter(is_valid=True, is_ad=False)
+            news_list = News.objects.filter(is_valid=True)
             logger.info(f"找到 {news_list.count()} 条需要清洗的新闻")
             
             cleaned_count = 0
-            ad_count = 0
             
             for news in news_list:
                 # 将新闻对象转换为字典
@@ -89,8 +70,7 @@ class DataCleaner:
                     'source_id': news.source_id,
                     'author': news.author,
                     'read_count': news.read_count,
-                    'is_valid': news.is_valid,
-                    'is_ad': news.is_ad
+                    'is_valid': news.is_valid
                 }
                 
                 # 清洗新闻数据
@@ -99,50 +79,15 @@ class DataCleaner:
                 # 更新数据库
                 news.title = cleaned_data['title']
                 news.content = cleaned_data['content']
-                news.is_ad = cleaned_data['is_ad']
                 news.save()
                 
                 cleaned_count += 1
-                if cleaned_data['is_ad']:
-                    ad_count += 1
             
-            logger.info(f"数据清洗完成，共清洗 {cleaned_count} 条新闻，识别 {ad_count} 条广告")
-            return cleaned_count, ad_count
+            logger.info(f"数据清洗完成，共清洗 {cleaned_count} 条新闻")
+            return cleaned_count, 0
         except Exception as e:
             logger.error(f"从数据库中清洗新闻数据失败: {e}")
             return 0, 0
-    
-    def _is_ad_news(self, news_data):
-        """识别广告新闻"""
-        # 检查标题中是否包含广告关键词
-        title = news_data.get('title', '')
-        for keyword in self.ad_keywords:
-            if keyword in title:
-                return True
-        
-        # 检查内容中是否包含广告关键词
-        content = news_data.get('content', '')
-        ad_keyword_count = 0
-        for keyword in self.ad_keywords:
-            if keyword in content:
-                ad_keyword_count += 1
-        
-        # 如果内容中广告关键词超过3个，认为是广告
-        if ad_keyword_count >= 3:
-            return True
-        
-        # 检查是否匹配广告正则模式
-        for pattern in self.ad_patterns:
-            if pattern.search(title) or pattern.search(content):
-                return True
-        
-        # 检查内容长度，如果过短且包含广告特征，认为是广告
-        if len(content) < 200:
-            for keyword in ['广告', '推广', '赞助']:
-                if keyword in content:
-                    return True
-        
-        return False
     
     def _clean_content(self, content):
         """清洗新闻内容"""
@@ -155,11 +100,7 @@ class DataCleaner:
         # 3. 移除特殊字符
         content = re.sub(r'[\r\n\t]', '', content)
         
-        # 4. 移除广告标识
-        for pattern in self.ad_patterns:
-            content = pattern.sub('', content)
-        
-        # 5. 移除首尾空格
+        # 4. 移除首尾空格
         content = content.strip()
         
         return content
@@ -204,11 +145,7 @@ class DataCleaner:
         elif content_length > 5000:
             score -= 5
         
-        # 3. 广告识别（20分）
-        if news_data.get('is_ad'):
-            score -= 20
-        
-        # 4. 完整性（10分）
+        # 3. 完整性（10分）
         if not news_data.get('author'):
             score -= 5
         if not news_data.get('publish_time'):
@@ -223,18 +160,14 @@ class DataCleaner:
         try:
             total_news = News.objects.count()
             valid_news = News.objects.filter(is_valid=True).count()
-            ad_news = News.objects.filter(is_ad=True).count()
             
             # 计算质量指标
             valid_rate = (valid_news / total_news) * 100 if total_news > 0 else 0
-            ad_rate = (ad_news / total_news) * 100 if total_news > 0 else 0
             
             report = {
                 'total_news': total_news,
                 'valid_news': valid_news,
-                'ad_news': ad_news,
-                'valid_rate': round(valid_rate, 2),
-                'ad_rate': round(ad_rate, 2)
+                'valid_rate': round(valid_rate, 2)
             }
             
             logger.info(f"生成数据质量报告: {report}")

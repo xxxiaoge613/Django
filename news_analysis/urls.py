@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import auth_views, news_views, visualization_views
+from .views import auth_views, news_views, visualization_views, profile_views
 
 urlpatterns = [
     # 认证相关URL
@@ -26,5 +26,16 @@ urlpatterns = [
     path('news/<int:pk>/collect/', news_views.collect_news, name='collect_news'),
     path('news/<int:pk>/comment/', news_views.add_comment, name='add_comment'),
     path('comment/<int:pk>/like/', news_views.like_comment, name='like_comment'),
-    path('collections/', news_views.user_collections, name='user_collections'),
+    path('collections/', profile_views.user_collections, name='user_collections'),
+    
+    # 个人空间相关URL
+    path('profile/', profile_views.profile, name='profile'),
+    path('profile/comments/', profile_views.user_comments, name='user_comments'),
+    path('profile/comments/<int:pk>/edit/', profile_views.edit_comment, name='edit_comment'),
+    path('profile/comments/<int:pk>/delete/', profile_views.delete_comment, name='delete_comment'),
+    path('profile/collections/', profile_views.user_collections, name='user_collections'),
+    path('profile/collections/tag/add/', profile_views.add_collection_tag, name='add_collection_tag'),
+    path('profile/collections/<int:collection_id>/tag/<int:tag_id>/add/', profile_views.add_tag_to_collection, name='add_tag_to_collection'),
+    path('profile/collections/<int:collection_id>/tag/<int:tag_id>/remove/', profile_views.remove_tag_from_collection, name='remove_tag_from_collection'),
+    path('profile/collections/<int:collection_id>/remove/', profile_views.remove_collection, name='remove_collection'),
 ]

@@ -95,8 +95,7 @@ def get_platform_distribution():
         
         # 2. 获取所有有效新闻，不限制日期范围
         news_list = News.objects.filter(
-            is_valid=True, 
-            is_ad=False
+            is_valid=True
         ).order_by('publish_time')
         
         # 3. 按日期和平台分组统计
@@ -164,7 +163,7 @@ def get_platform_statistics():
     """获取各平台新闻数量统计"""
     try:
         # 统计各平台新闻数量
-        platform_counts = News.objects.filter(is_valid=True, is_ad=False).values('platform').annotate(count=models.Count('id'))
+        platform_counts = News.objects.filter(is_valid=True).values('platform').annotate(count=models.Count('id'))
         
         # 计算总新闻数
         total_news = sum(item['count'] for item in platform_counts)
@@ -194,8 +193,7 @@ def get_hot_keywords(limit=50):
         # 从Keyword模型中获取所有有效新闻的关键词，按出现次数排序
         # 不限制时间范围，确保能获取到关键词
         hot_keywords = Keyword.objects.filter(
-            news__is_valid=True,
-            news__is_ad=False
+            news__is_valid=True
         ).values('keyword').annotate(
             count=Count('keyword')
         ).order_by('-count')[:limit]
@@ -206,8 +204,7 @@ def get_hot_keywords(limit=50):
             
             # 不限制时间范围，获取所有有效新闻
             news_list = News.objects.filter(
-                is_valid=True, 
-                is_ad=False
+                is_valid=True
             )
             
             if not news_list:
@@ -267,11 +264,8 @@ def get_news_statistics():
         # 总新闻数
         total_news = News.objects.filter(is_valid=True).count()
         
-        # 有效新闻数（非广告）
-        valid_news = News.objects.filter(is_valid=True, is_ad=False).count()
-        
-        # 广告新闻数
-        ad_news = News.objects.filter(is_valid=True, is_ad=True).count()
+        # 有效新闻数
+        valid_news = total_news
         
         # 已分析情感的新闻数
         analyzed_news = SentimentAnalysis.objects.count()
@@ -283,7 +277,6 @@ def get_news_statistics():
         return {
             'total_news': total_news,
             'valid_news': valid_news,
-            'ad_news': ad_news,
             'analyzed_news': analyzed_news,
             'today_news': today_news
         }
@@ -292,7 +285,6 @@ def get_news_statistics():
         return {
             'total_news': 0,
             'valid_news': 0,
-            'ad_news': 0,
             'analyzed_news': 0,
             'today_news': 0
         }

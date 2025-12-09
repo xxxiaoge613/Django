@@ -280,8 +280,7 @@ class PaiComSpider(BaseSpider):
                 'source_id': source_id,
                 'author': basic_info['author'],
                 'read_count': read_count,
-                'is_valid': True,
-                'is_ad': False
+                'is_valid': True
             }
             
             # 保存到数据库

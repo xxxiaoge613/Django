@@ -320,8 +320,7 @@ class QuantumBitSpider(BaseSpider):
                 'source_id': source_id,
                 'author': basic_info['author'],
                 'read_count': read_count,
-                'is_valid': len(content) > 100,  # 只有内容长度超过100才视为有效
-                'is_ad': False  # 后续通过数据清洗模块识别广告
+                'is_valid': len(content) > 100  # 只有内容长度超过100才视为有效
             }
             
             # 保存到数据库

@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.utils import timezone
 from news_analysis.models import News, Comment, Collection, Like
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -15,7 +16,7 @@ def news_list(request):
     search_mode = request.GET.get('search_mode', 'keyword')  # 'keyword'或'title'
     
     # 构建查询
-    query = Q(is_valid=True, is_ad=False)
+    query = Q(is_valid=True)
     
     if platform:
         query &= Q(platform=platform)
@@ -82,8 +83,7 @@ def news_detail(request, pk):
     # 获取相关推荐新闻
     related_news = News.objects.filter(
         Q(platform=news.platform) & ~Q(id=pk),
-        is_valid=True,
-        is_ad=False
+        is_valid=True
     ).order_by('-publish_time')[:5]
     
     # 获取当前新闻的关键词（从新闻标题和内容中提取）
@@ -159,6 +159,8 @@ def home(request):
     """首页视图，包含搜索框和可视化数据"""
     from news_analysis.sentiment_analysis.analyzer import SentimentAnalyzer
     from news_analysis.views.visualization_views import get_platform_distribution, get_hot_keywords, get_news_statistics
+    from django.db.models import Count, F, Q
+    from datetime import datetime, timedelta
     
     # 获取情感分析器实例
     analyzer = SentimentAnalyzer()
@@ -166,24 +168,42 @@ def home(request):
     # 获取情感趋势数据（最近7天）
     sentiment_trend = analyzer.get_sentiment_trend(days=7)
     
-    # 获取情感分布数据
-    sentiment_dist = analyzer.get_sentiment_distribution()
-    
-    # 获取平台分布数据
-    platform_dist = get_platform_distribution()
-    
-    # 获取热门关键词数据
-    hot_keywords = get_hot_keywords(limit=20)
-    
     # 获取新闻统计数据
     news_stats = get_news_statistics()
     
+    # 获取最近7天热度最高的10条新闻
+    # 计算7天前的日期
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    
+    # 查询最近7天的新闻，并计算热度
+    hot_news = News.objects.filter(
+        publish_time__gte=seven_days_ago,
+        is_valid=True
+    ).annotate(
+        # 计算评论数
+        comment_count=Count('comments', filter=Q(comments__is_deleted=False)),
+        # 计算收藏数
+        collection_count=Count('collections'),
+        # 讨论热度 = 评论数
+        discussion_heat=F('comment_count'),
+        # 传播热度 = 收藏数
+        spread_heat=F('collection_count'),
+        # 互动量 = 评论数 + 收藏数
+        interaction=F('comment_count') + F('collection_count'),
+        # 总曝光量 = 阅读量 + 1（避免除零）
+        total_exposure=F('read_count') + 1,
+        # 互动率 = 互动量 / 总曝光量
+        interaction_rate=F('interaction') / F('total_exposure'),
+        # 热度分数 = 阅读量（优先） + (讨论热度 + 传播热度) × 互动率
+        hot_score=F('read_count') + (F('discussion_heat') + F('spread_heat')) * F('interaction_rate')
+    ).order_by(
+        '-hot_score'  # 按热度分数降序排序
+    )[:10]  # 取前10条
+    
     return render(request, 'home.html', {
         'sentiment_trend': sentiment_trend,
-        'sentiment_dist': sentiment_dist,
-        'platform_dist': platform_dist,
-        'hot_keywords': hot_keywords,
-        'news_stats': news_stats
+        'news_stats': news_stats,
+        'hot_news': hot_news
     })
 
 # 收藏新闻视图

@@ -20,7 +20,6 @@ class News(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     is_valid = models.BooleanField(default=True, verbose_name='是否有效')
-    is_ad = models.BooleanField(default=False, verbose_name='是否为广告')
 
     class Meta:
         verbose_name = '新闻'
@@ -76,10 +75,25 @@ class Like(models.Model):
     def __str__(self):
         return f'{self.user.username} 点赞了 {self.comment.id}'
 
+# 收藏标签表
+class CollectionTag(models.Model):
+    name = models.CharField(max_length=50, verbose_name='标签名称')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collection_tags', verbose_name='所属用户')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        verbose_name = '收藏标签'
+        verbose_name_plural = '收藏标签列表'
+        unique_together = ('user', 'name')
+
+    def __str__(self):
+        return f'{self.user.username} - {self.name}'
+
 # 收藏表
 class Collection(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collections', verbose_name='收藏用户')
     news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='collections', verbose_name='收藏新闻')
+    tags = models.ManyToManyField(CollectionTag, blank=True, related_name='collections', verbose_name='收藏标签')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='收藏时间')
 
     class Meta:
