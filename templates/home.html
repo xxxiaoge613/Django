@@ -1,0 +1,319 @@
+{% extends 'base/base.html' %}
+
+{% block title %}财经新闻数据分析可视化{% endblock %}
+
+{% block content %}
+    <!-- 数据准备：将Python对象转换为JSON字符串 -->
+    {{ sentiment_trend|json_script:"sentiment_trend_data" }}
+    
+    <!-- 搜索栏 -->
+    <div class="bg-primary text-white py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <h1 class="mb-3">财经新闻数据分析可视化</h1>
+                    <p class="mb-5">实时监控财经新闻情感趋势、平台分布和热门关键词</p>
+                    <!-- 搜索框 -->
+                    <form action="{% url 'news_list' %}" method="get" class="d-flex justify-content-center align-items-center" style="max-width: 700px; margin: 0 auto;">
+                        <select name="search_mode" class="form-select" style="width: 100px; border: 1px solid #ced4da; border-radius: 0.375rem 0 0 0.375rem; background-color: white;">
+                            <option value="title" {% if search_mode == 'title' %}selected{% endif %}>标题</option>
+                            <option value="keyword" {% if search_mode == 'keyword' or not search_mode %}selected{% endif %}>全文</option>
+                        </select>
+                        <input type="text" name="q" class="form-control" placeholder="请输入内容" style="flex: 1; border-left: none; border-radius: 0;">
+                        <button type="submit" class="btn" style="background-color: #2563eb; color: white; border: 1px solid #2563eb; border-radius: 0 0.375rem 0.375rem 0; padding: 0.375rem 1.5rem;">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </form>
+                    
+                    <!-- 搜索模式说明 -->
+                    <div class="mt-3 text-center" style="font-size: 14px; color: rgba(255, 255, 255, 0.8);">
+                        <small>
+                            <strong>全文搜索</strong>：匹配新闻标题、内容和关键词中的任意位置<br>
+                            <strong>标题搜索</strong>：仅匹配新闻标题中的内容
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <!-- 总新闻数 -->
+            <div class="col-md-3">
+                <div class="dashboard-card bg-primary text-white text-center p-4 rounded-lg shadow">
+                    <div class="display-4 mb-2">{{ news_stats.total_news }}</div>
+                    <div class="h5">总新闻数</div>
+                </div>
+            </div>
+            <!-- 有效新闻数 -->
+            <div class="col-md-3">
+                <div class="dashboard-card bg-success text-white text-center p-4 rounded-lg shadow">
+                    <div class="display-4 mb-2">{{ news_stats.valid_news }}</div>
+                    <div class="h5">有效新闻数</div>
+                </div>
+            </div>
+            <!-- 今日新增 -->
+            <div class="col-md-3">
+                <div class="dashboard-card bg-info text-white text-center p-4 rounded-lg shadow">
+                    <div class="display-4 mb-2">{{ news_stats.today_news }}</div>
+                    <div class="h5">今日新增</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 热度最高新闻 -->
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="dashboard-card p-4 rounded-lg shadow">
+                    <h5 class="mb-3">最近7天热度最高的10条新闻</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>标题</th>
+                                    <th>来源</th>
+                                    <th>热度值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for news in hot_news %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><a href="{% url 'news_detail' news.id %}" class="text-primary text-decoration-none">{{ news.title }}</a></td>
+                                    <td>{{ news.get_platform_display }}</td>
+                                    <td>{{ news.hot_score }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">暂无热度新闻数据</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 情感趋势分析 -->
+        <div class="row mt-5">
+            <!-- 情感类型数量趋势 -->
+            <div class="col-md-6">
+                <div class="dashboard-card p-4 rounded-lg shadow">
+                    <h5 class="mb-3">情感类型数量趋势（最近7天）</h5>
+                    <div id="sentimentTypeTrendChart" class="chart-container" style="height: 350px;"></div>
+                </div>
+            </div>
+            <!-- 平均情感得分趋势 -->
+            <div class="col-md-6">
+                <div class="dashboard-card p-4 rounded-lg shadow">
+                    <h5 class="mb-3">平均情感得分趋势（最近7天）</h5>
+                    <div id="sentimentScoreTrendChart" class="chart-container" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 快速链接 -->
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="dashboard-card p-4 rounded-lg shadow">
+                    <h5 class="mb-3">快速访问</h5>
+                    <div class="d-flex justify-content-center gap-4">
+                        <a href="{% url 'news_list' %}" class="btn btn-outline-primary btn-lg">新闻列表</a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg">完整仪表盘</a>
+                        <a href="{% url 'keyword_cloud' %}" class="btn btn-outline-primary btn-lg">关键词云</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // 准备数据：从DOM中读取JSON字符串并解析为JavaScript对象
+        let sentimentTrendData = JSON.parse(document.getElementById('sentiment_trend_data').textContent);
+        
+        // 初始化图表
+        const sentimentTypeTrendChart = echarts.init(document.getElementById('sentimentTypeTrendChart'));
+        const sentimentScoreTrendChart = echarts.init(document.getElementById('sentimentScoreTrendChart'));
+        
+        // 1. 情感类型数量趋势图
+        function updateSentimentTypeTrend() {
+            const sentimentTypeTrendOption = {
+                title: {
+                    text: '情感类型数量变化',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: ['正面新闻数', '负面新闻数', '中性新闻数'],
+                    bottom: 0
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: sentimentTrendData.map(item => item.date),
+                // 强制显示所有日期标签
+                axisLabel: {
+                    interval: 0,
+                    rotate: 30,
+                    fontSize: 10
+                }
+            },
+                yAxis: {
+                    type: 'value',
+                    name: '新闻数量',
+                    axisLabel: {
+                        formatter: '{value}'
+                    }
+                },
+                series: [
+                    {
+                        name: '正面新闻数',
+                        type: 'line',
+                        data: sentimentTrendData.map(item => item.positive_count),
+                        itemStyle: {
+                            color: '#52c41a'
+                        }
+                    },
+                    {
+                        name: '负面新闻数',
+                        type: 'line',
+                        data: sentimentTrendData.map(item => item.negative_count),
+                        itemStyle: {
+                            color: '#ff4d4f'
+                        }
+                    },
+                    {
+                        name: '中性新闻数',
+                        type: 'line',
+                        data: sentimentTrendData.map(item => item.neutral_count),
+                        itemStyle: {
+                            color: '#faad14'
+                        }
+                    }
+                ]
+            };
+            sentimentTypeTrendChart.setOption(sentimentTypeTrendOption);
+        }
+        
+        // 2. 平均情感得分趋势图
+        function updateSentimentScoreTrend() {
+            const sentimentScoreTrendOption = {
+                title: {
+                    text: '平均情感得分变化',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        return params[0].name + '<br/>平均情感得分: ' + params[0].value.toFixed(4);
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '10%',
+                    containLabel: true
+                },
+                xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: sentimentTrendData.map(item => item.date),
+                // 强制显示所有日期标签
+                axisLabel: {
+                    interval: 0,
+                    rotate: 30,
+                    fontSize: 10
+                }
+            },
+                yAxis: {
+                    type: 'value',
+                    name: '情感得分',
+                    axisLabel: {
+                        formatter: '{value}'
+                    },
+                    // 移除固定的min和max，使用自适应范围
+                    axisLine: {
+                        show: true
+                    },
+                    axisTick: {
+                        show: true
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: {
+                            type: 'dashed'
+                        }
+                    },
+                    // 开启自适应范围，增强数据起伏的视觉效果
+                    scale: true,
+                    // 调整分割线数量，增强可读性
+                    splitNumber: 8
+                },
+                series: [
+                    {
+                        name: '平均情感得分',
+                        type: 'line',
+                        data: sentimentTrendData.map(item => item.avg_score),
+                        smooth: true,
+                        itemStyle: {
+                            color: '#1890ff'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                {
+                                    offset: 0,
+                                    color: 'rgba(24, 144, 255, 0.3)'
+                                },
+                                {
+                                    offset: 1,
+                                    color: 'rgba(24, 144, 255, 0.1)'
+                                }
+                            ])
+                        },
+                        markLine: {
+                            data: [
+                                {
+                                    yAxis: 0.5,
+                                    name: '中性基准线',
+                                    lineStyle: {
+                                        type: 'dashed',
+                                        color: '#999'
+                                    },
+                                    label: {
+                                        formatter: '中性基准线',
+                                        position: 'end'
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            };
+            sentimentScoreTrendChart.setOption(sentimentScoreTrendOption);
+        }
+        
+        // 初始更新
+        updateSentimentTypeTrend();
+        updateSentimentScoreTrend();
+        
+        // 响应式处理
+        window.addEventListener('resize', function() {
+            sentimentTypeTrendChart.resize();
+            sentimentScoreTrendChart.resize();
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends 'base/base.html' %}
+
+{% block title %}热门关键词分析{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <!-- 页面标题 -->
+        <div class="col-md-12">
+            <h1>财经新闻热门关键词分析</h1>
+            <p class="text-muted">基于最近30天新闻的热门关键词统计</p>
+            <hr>
+        </div>
+    </div>
+    
+    <!-- 筛选器 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <form method="get" action="{% url 'keyword_cloud' %}">
+                <div class="input-group">
+                    <label class="input-group-text" for="limit">关键词数量</label>
+                    <select class="form-select" id="limit" name="limit">
+                        <option value="30" {% if limit == 30 %}selected{% endif %}>30个</option>
+                        <option value="50" {% if limit == 50 %}selected{% endif %}>50个</option>
+                        <option value="100" {% if limit == 100 %}selected{% endif %}>100个</option>
+                        <option value="200" {% if limit == 200 %}selected{% endif %}>200个</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 关键词云 -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h5 class="mb-3">热门关键词云</h5>
+                <div id="keywordCloudChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 关键词表格 -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h5 class="mb-3">关键词数据详情</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>关键词</th>
+                                <th>出现次数</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if keywords %}
+                                {% for keyword in keywords %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ keyword.keyword }}</td>
+                                        <td>{{ keyword.count }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">暂无关键词数据</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <!-- 数据准备：将Python对象转换为JSON字符串 -->
+    {{ keywords|json_script:"keywords_data" }}
+    
+    <script>
+        // 准备数据
+        const keywords = JSON.parse(document.getElementById('keywords_data').textContent);
+        
+        // 关键词云图
+        const keywordCloudChart = echarts.init(document.getElementById('keywordCloudChart'));
+        
+        // 处理空数据情况
+        let keywordCloudOption = {
+            title: {
+                text: '热门关键词云',
+                left: 'center'
+            },
+            tooltip: {},
+            series: []
+        };
+        
+        if (keywords && keywords.length > 0) {
+            // 有数据时的配置
+            keywordCloudOption = {
+                title: {
+                    text: '热门关键词云',
+                    left: 'center'
+                },
+                tooltip: {},
+                series: [
+                    {
+                        type: 'wordCloud',
+                        shape: 'circle',
+                        left: 'center',
+                        top: 'center',
+                        width: '100%',
+                        height: '100%',
+                        right: null,
+                        bottom: null,
+                        sizeRange: [12, 80],
+                        rotationRange: [-90, 90],
+                        rotationStep: 45,
+                        gridSize: 10,
+                        drawOutOfBound: false,
+                        textStyle: {
+                            fontFamily: 'sans-serif',
+                            fontWeight: 'bold',
+                            color: function () {
+                                return 'rgb(' + [
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160)
+                                ].join(',') + ')';
+                            }
+                        },
+                        emphasis: {
+                            focus: 'self',
+                            textStyle: {
+                                shadowBlur: 10,
+                                shadowColor: '#333'
+                            }
+                        },
+                        data: keywords.map(item => ({
+                            name: item.keyword,
+                            value: item.count
+                        }))
+                    }
+                ]
+            };
+        } else {
+            // 无数据时的配置
+            keywordCloudOption = {
+                title: {
+                    text: '热门关键词云',
+                    left: 'center'
+                },
+                tooltip: {},
+                graphic: [
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: 'center',
+                        style: {
+                            text: '暂无关键词数据',
+                            fontSize: 18,
+                            fill: '#999'
+                        }
+                    }
+                ],
+                series: []
+            };
+        }
+        
+        keywordCloudChart.setOption(keywordCloudOption);
+        
+        // 添加关键词点击事件
+        keywordCloudChart.on('click', function(params) {
+            // 获取点击的关键词
+            const keyword = params.name;
+            // 跳转到新闻列表页面，使用关键词进行搜索
+            window.location.href = `/news/?q=${encodeURIComponent(keyword)}`;
+        });
+        
+        // 响应式处理
+        window.addEventListener('resize', function() {
+            keywordCloudChart.resize();
+        });
+    </script>
+{% endblock %}

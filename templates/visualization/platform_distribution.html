@@ -1,0 +1,147 @@
+{% extends 'base/base.html' %}
+
+{% block title %}新闻平台分布{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <!-- 页面标题 -->
+        <div class="col-md-12">
+            <h1>新闻平台分布分析</h1>
+            <p class="text-muted">查看各平台新闻数量的分布情况</p>
+            <hr>
+        </div>
+    </div>
+    
+    <!-- 平台分布图表 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="mb-3">平台分布柱状图</h5>
+                <div id="platformBarChart" class="chart-container"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="mb-3">平台分布饼图</h5>
+                <div id="platformPieChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 平台数据表格 -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h5 class="mb-3">平台数据详情</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>平台名称</th>
+                            <th>新闻数量</th>
+                            <th>占比</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for platform in platform_data %}
+                            <tr>
+                                <td>{{ platform.platform }}</td>
+                                <td>{{ platform.count }}</td>
+                                <td>{{ platform.percentage|floatformat:2 }}%</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // 准备数据
+        const platformData = {{ platform_data|safe }};
+        
+        // 计算总新闻数
+        const total = platformData.reduce((sum, item) => sum + item.count, 0);
+        
+        // 1. 平台分布柱状图
+        const platformBarChart = echarts.init(document.getElementById('platformBarChart'));
+        const platformBarOption = {
+            title: {
+                text: '各平台新闻数量',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: platformData.map(item => item.platform)
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    name: '新闻数量',
+                    type: 'bar',
+                    data: platformData.map(item => item.count),
+                    itemStyle: {
+                        color: '#1890ff'
+                    }
+                }
+            ]
+        };
+        platformBarChart.setOption(platformBarOption);
+        
+        // 2. 平台分布饼图
+        const platformPieChart = echarts.init(document.getElementById('platformPieChart'));
+        const platformPieOption = {
+            title: {
+                text: '平台分布比例',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left'
+            },
+            series: [
+                {
+                    name: '平台分布',
+                    type: 'pie',
+                    radius: '50%',
+                    data: platformData.map(item => ({
+                        name: item.platform,
+                        value: item.count
+                    })),
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+        platformPieChart.setOption(platformPieOption);
+        
+        // 响应式处理
+        window.addEventListener('resize', function() {
+            platformBarChart.resize();
+            platformPieChart.resize();
+        });
+    </script>
+{% endblock %}

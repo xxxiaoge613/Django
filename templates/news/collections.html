@@ -1,0 +1,90 @@
+{% extends 'base/base.html' %}
+
+{% block title %}我的收藏{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <!-- 页面标题 -->
+            <h1>我的收藏</h1>
+            <hr>
+            
+            <!-- 收藏列表 -->
+            {% if collections.object_list %}
+                <div class="row">
+                    {% for collection in collections.object_list %}
+                        <div class="col-md-6">
+                            <div class="card news-card">
+                                <div class="card-body">
+                                    <h5 class="news-title">
+                                        <a href="{% url 'news_detail' collection.news.id %}">{{ collection.news.title }}</a>
+                                    </h5>
+                                    <p class="card-text text-muted small">
+                                        {{ collection.news.content|truncatechars:100 }}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center news-meta">
+                                        <div class="text-muted">
+                                            <span class="badge bg-secondary">{{ collection.news.platform }}</span>
+                                            <span class="ms-2">{{ collection.news.publish_time|date:"Y-m-d H:i" }}</span>
+                                            <span class="ms-2">收藏时间: {{ collection.created_at|date:"Y-m-d H:i" }}</span>
+                                        </div>
+                                        <div>
+                                            <a href="{% url 'collect_news' collection.news.id %}" class="btn btn-sm btn-secondary">
+                                                <i class="bi bi-bookmark-fill"></i> 取消收藏
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- 分页导航 -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if collections.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ collections.previous_page_number }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for i in collections.paginator.page_range %}
+                            {% if collections.number == i %}
+                                <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if collections.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ collections.next_page_number }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    您还没有收藏任何新闻，快去<a href="{% url 'news_list' %}" class="alert-link">收藏</a>一些吧！
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

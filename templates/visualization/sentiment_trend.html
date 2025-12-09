@@ -1,0 +1,281 @@
+{% extends 'base/base.html' %}
+
+{{ trend_data|json_script:"trend_data" }}
+
+{% block title %}情感趋势分析{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <!-- 页面标题 -->
+        <div class="col-md-12">
+            <h1>财经新闻情感趋势分析</h1>
+            <p class="text-muted">查看不同时间段的新闻情感变化趋势</p>
+            <hr>
+        </div>
+    </div>
+    
+    <!-- 筛选器 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <form method="get" action="{% url 'sentiment_trend' %}">
+                <div class="input-group">
+                    <label class="input-group-text" for="days">统计天数</label>
+                    <select class="form-select" id="days" name="days">
+                        <option value="7" {% if days == 7 %}selected{% endif %}>7天</option>
+                        <option value="14" {% if days == 14 %}selected{% endif %}>14天</option>
+                        <option value="30" {% if days == 30 %}selected{% endif %}>30天</option>
+                        <option value="90" {% if days == 90 %}selected{% endif %}>90天</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 情感趋势分析 -->
+    <div class="row">
+        <!-- 情感类型数量趋势 -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="mb-3">情感类型数量趋势（最近{{ days }}天）</h5>
+                <div id="sentimentTypeTrendChart" class="chart-container"></div>
+            </div>
+        </div>
+        <!-- 平均情感得分趋势 -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="mb-3">平均情感得分趋势（最近{{ days }}天）</h5>
+                <div id="sentimentScoreTrendChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // 准备数据
+        const trendData = JSON.parse(document.getElementById('trend_data').textContent || '[]');
+        
+        // 初始化图表
+        const sentimentTypeTrendChart = echarts.init(document.getElementById('sentimentTypeTrendChart'));
+        const sentimentScoreTrendChart = echarts.init(document.getElementById('sentimentScoreTrendChart'));
+        
+        // 1. 情感类型数量趋势图
+        const sentimentTypeTrendOption = {
+            title: {
+                text: '情感类型数量变化',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['正面新闻数', '负面新闻数', '中性新闻数'],
+                bottom: 0
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: trendData.map(item => item.date),
+                // 强制显示所有日期标签
+                axisLabel: {
+                    interval: 0,
+                    rotate: 30,
+                    fontSize: 10
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '新闻数量',
+                axisLabel: {
+                    formatter: '{value}'
+                }
+            },
+            series: [
+                {
+                    name: '正面新闻数',
+                    type: 'line',
+                    data: trendData.map(item => item.positive_count),
+                    itemStyle: {
+                        color: '#52c41a'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                },
+                {
+                    name: '负面新闻数',
+                    type: 'line',
+                    data: trendData.map(item => item.negative_count),
+                    itemStyle: {
+                        color: '#ff4d4f'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                },
+                {
+                    name: '中性新闻数',
+                    type: 'line',
+                    data: trendData.map(item => item.neutral_count),
+                    itemStyle: {
+                        color: '#faad14'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+        
+        // 2. 平均情感得分趋势图
+        const sentimentScoreTrendOption = {
+            title: {
+                text: '平均情感得分变化',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function(params) {
+                    return params[0].name + '<br/>平均情感得分: ' + params[0].value.toFixed(4);
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '10%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: trendData.map(item => item.date),
+                // 强制显示所有日期标签
+                axisLabel: {
+                    interval: 0,
+                    rotate: 30,
+                    fontSize: 10
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '情感得分',
+                axisLabel: {
+                    formatter: '{value}'
+                },
+                // 移除固定的min和max，使用自适应范围
+                axisLine: {
+                    show: true
+                },
+                axisTick: {
+                    show: true
+                },
+                splitLine: {
+                    show: true,
+                    lineStyle: {
+                        type: 'dashed'
+                    }
+                },
+                // 开启自适应范围，增强数据起伏的视觉效果
+                scale: true,
+                // 调整分割线数量，增强可读性
+                splitNumber: 8
+            },
+            series: [
+                {
+                    name: '平均情感得分',
+                    type: 'line',
+                    data: trendData.map(item => item.avg_score),
+                    smooth: true,
+                    itemStyle: {
+                        color: '#1890ff'
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            {
+                                offset: 0,
+                                color: 'rgba(24, 144, 255, 0.3)'
+                            },
+                            {
+                                offset: 1,
+                                color: 'rgba(24, 144, 255, 0.1)'
+                            }
+                        ])
+                    },
+                    markLine: {
+                        data: [
+                            {
+                                yAxis: 0.5,
+                                name: '中性基准线',
+                                lineStyle: {
+                                    type: 'dashed',
+                                    color: '#999'
+                                },
+                                label: {
+                                    formatter: '中性基准线',
+                                    position: 'end'
+                                }
+                            }
+                        ]
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+        
+        // 渲染图表
+        sentimentTypeTrendChart.setOption(sentimentTypeTrendOption);
+        sentimentScoreTrendChart.setOption(sentimentScoreTrendOption);
+        
+        // 添加图表点击事件 - 情感类型趋势图
+        sentimentTypeTrendChart.on('click', function(params) {
+            // 获取点击的系列名称和数据
+            const seriesName = params.seriesName;
+            
+            // 解析情感类型
+            let sentimentType = '';
+            if (seriesName.includes('正面')) {
+                sentimentType = '正面';
+            } else if (seriesName.includes('负面')) {
+                sentimentType = '负面';
+            } else if (seriesName.includes('中性')) {
+                sentimentType = '中性';
+            }
+            
+            if (sentimentType) {
+                // 跳转到按情感类型筛选的新闻列表页面
+                window.location.href = '/news/?sentiment=' + encodeURIComponent(sentimentType);
+            }
+        });
+        
+        // 响应式处理
+        window.addEventListener('resize', function() {
+            sentimentTypeTrendChart.resize();
+            sentimentScoreTrendChart.resize();
+        });
+    </script>
+{% endblock %}
