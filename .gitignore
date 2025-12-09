@@ -15,7 +15,7 @@ logs/
 
 # Debug
 debug_output/
-*.html
+# *.html - Uncomment this line to ignore HTML files
 
 # Eggs
 django_news_analysis.egg-info/
