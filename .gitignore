@@ -22,6 +22,7 @@ django_news_analysis.egg-info/
 
 # Other
 *.txt
+!requirements.txt
 *.md
 !README.md
 *.lock
