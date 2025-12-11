@@ -446,7 +446,7 @@ class SentimentAnalyzer:
                     neutral_count = sentiments.filter(sentiment_type='中性').count()
                     
                     sentiment_trends.append({
-                        'date': current_date.strftime('%Y-%m-%d'),
+                        'date': current_date.strftime('%m-%d'),
                         'avg_score': round(avg_score, 4),
                         'positive_count': positive_count,
                         'negative_count': negative_count,
@@ -456,7 +456,7 @@ class SentimentAnalyzer:
                 else:
                     # 即使没有新闻，也要添加该日期的记录，保持图表连续
                     sentiment_trends.append({
-                        'date': current_date.strftime('%Y-%m-%d'),
+                        'date': current_date.strftime('%m-%d'),
                         'avg_score': 0.5,  # 默认中性得分
                         'positive_count': 0,
                         'negative_count': 0,

@@ -91,7 +91,7 @@ def get_platform_distribution():
         dates = []
         for i in range(7):
             current_date = end_date - timedelta(days=6 - i)  # 从6天前到今天
-            dates.append(current_date.strftime('%Y-%m-%d'))
+            dates.append(current_date.strftime('%m-%d'))
         
         # 2. 获取所有有效新闻，不限制日期范围
         news_list = News.objects.filter(
@@ -102,8 +102,8 @@ def get_platform_distribution():
         platform_trend = {}
         
         for news in news_list:
-            # 格式化日期为YYYY-MM-DD
-            date_key = news.publish_time.strftime('%Y-%m-%d')
+            # 格式化日期为MM-DD
+            date_key = news.publish_time.strftime('%m-%d')
             platform = news.platform
             
             if date_key not in platform_trend:
@@ -190,16 +190,27 @@ def get_hot_keywords(limit=50):
         from news_analysis.models import Keyword, News
         from django.db.models import Count
         
+        # 财经领域停用词表
+        stopwords = set([
+            # 通用停用词
+            '的', '了', '和', '是', '在', '有', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这',
+            '我', '他', '她', '它', '们', '我们', '你们', '他们', '她们', '它们', '这', '那', '这些', '那些', '这里', '那里',
+            '对于', '关于', '至于', '按照', '根据', '通过', '经过', '由于', '因为', '所以', '因此', '从而', '于是', '然后', '但是', '然而',
+            '却', '不过', '只是', '如果', '假如', '假设', '倘若', '要是', '只要', '只有', '除非', '虽然', '尽管', '即使', '即便', '哪怕',
+            '或者', '要么', '否则', '不仅', '不但', '而且', '并且', '同时', '另外', '此外', '还有', '以及', '与', '同', '跟', '和', '及',
+            '之', '的', '了', '着', '过', '呢', '吗', '吧', '啊', '呀', '哦', '啦', '唉', '哎', '嗨', '喂', '嗯', '哼', '可以', '可是', '可能', '应该', '一定', '能', '不能', '会', '不会',
+        ])
+        
         # 从Keyword模型中获取所有有效新闻的关键词，按出现次数排序
         # 不限制时间范围，确保能获取到关键词
         hot_keywords = Keyword.objects.filter(
             news__is_valid=True
         ).values('keyword').annotate(
             count=Count('keyword')
-        ).order_by('-count')[:limit]
+        ).order_by('-count')[:limit*2]  # 获取更多关键词以便过滤后仍有足够数量
         
         # 如果从Keyword模型中没有获取到足够的关键词，回退到传统方法
-        if not hot_keywords or len(hot_keywords) < limit:
+        if not hot_keywords or len([item for item in hot_keywords if not item['keyword'].isdigit() and item['keyword'] not in stopwords]) < limit:
             logger.info("从Keyword模型获取关键词不足，回退到传统方法")
             
             # 不限制时间范围，获取所有有效新闻
@@ -219,12 +230,12 @@ def get_hot_keywords(limit=50):
             # 财经领域停用词表
             stopwords = set([
                 # 通用停用词
-                '的', '了', '和', '是', '在', '有', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这',
-                '我', '他', '她', '它', '们', '我们', '你们', '他们', '她们', '它们', '这', '那', '这些', '那些', '这里', '那里',
-                '对于', '关于', '至于', '按照', '根据', '通过', '经过', '由于', '因为', '所以', '因此', '从而', '于是', '然后', '但是', '然而',
-                '却', '不过', '只是', '如果', '假如', '假设', '倘若', '要是', '只要', '只有', '除非', '虽然', '尽管', '即使', '即便', '哪怕',
-                '或者', '要么', '否则', '不仅', '不但', '而且', '并且', '同时', '另外', '此外', '还有', '以及', '与', '同', '跟', '和', '及',
-                '之', '的', '了', '着', '过', '呢', '吗', '吧', '啊', '呀', '哦', '啦', '唉', '哎', '嗨', '喂', '嗯', '哼',
+            '的', '了', '和', '是', '在', '有', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这',
+            '我', '他', '她', '它', '们', '我们', '你们', '他们', '她们', '它们', '这', '那', '这些', '那些', '这里', '那里',
+            '对于', '关于', '至于', '按照', '根据', '通过', '经过', '由于', '因为', '所以', '因此', '从而', '于是', '然后', '但是', '然而',
+            '却', '不过', '只是', '如果', '假如', '假设', '倘若', '要是', '只要', '只有', '除非', '虽然', '尽管', '即使', '即便', '哪怕',
+            '或者', '要么', '否则', '不仅', '不但', '而且', '并且', '同时', '另外', '此外', '还有', '以及', '与', '同', '跟', '和', '及',
+            '之', '的', '了', '着', '过', '呢', '吗', '吧', '啊', '呀', '哦', '啦', '唉', '哎', '嗨', '喂', '嗯', '哼', '可以', '可是', '可能', '应该', '一定', '能', '不能', '会', '不会',
                 
                 # 财经领域停用词
                 '新闻', '报道', '消息', '据悉', '表示', '认为', '指出', '强调', '说明', '提到', '称', '说', '发布', '宣布', '公告',
@@ -234,8 +245,8 @@ def get_hot_keywords(limit=50):
                 '饮食', '住宿', '购物', '消费', '支出', '花费', '费用', '价格', '成本',
             ])
             
-            # 过滤停用词和无意义词
-            filtered_words = [word for word in words if len(word) > 1 and word not in stopwords]
+            # 过滤停用词、无意义词和纯数字
+            filtered_words = [word for word in words if len(word) > 1 and word not in stopwords and not word.isdigit()]
             
             # 统计词频
             word_counts = Counter(filtered_words)
@@ -248,11 +259,11 @@ def get_hot_keywords(limit=50):
                 'count': count
             } for word, count in hot_keywords]
         
-        # 格式化结果
+        # 格式化结果，过滤掉纯数字关键词和停用词
         return [{
             'keyword': item['keyword'],
             'count': item['count']
-        } for item in hot_keywords]
+        } for item in hot_keywords if not item['keyword'].isdigit() and item['keyword'] not in stopwords]
     except Exception as e:
         logger.error(f"获取热门关键词失败: {e}")
         return []
