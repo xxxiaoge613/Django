@@ -1,14 +1,15 @@
 from django.shortcuts import render, redirect, reverse
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from news_analysis.forms.auth_forms import CustomUserCreationForm
 
 # 注册视图
 def register(request):
     """用户注册视图"""
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             # 自动登录新注册用户
@@ -18,7 +19,7 @@ def register(request):
         else:
             messages.error(request, '注册失败，请检查输入信息。')
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     
     return render(request, 'auth/register.html', {'form': form})
 

@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'news_analysis.middleware.register_rate_limit.RegisterRateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'DjangoProject.urls'

@@ -13,6 +13,13 @@
                     <form method="post">
                         {% csrf_token %}
                         
+                        <!-- 显示频率限制错误 -->
+                        {% if rate_limit_error %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ rate_limit_error }}
+                            </div>
+                        {% endif %}
+                        
                         <div class="mb-3">
                             <label for="username" class="form-label">用户名</label>
                             {{ form.username }}
@@ -35,6 +42,9 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
+                            <div class="text-muted mt-1">
+                                <small>密码要求：至少8位，包含字母、数字和特殊字符</small>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
