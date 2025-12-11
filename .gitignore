@@ -11,7 +11,7 @@ __pycache__/
 # Django
 *.log
 logs/
-# db.sqlite3 - Uncomment this line to ignore the database file
+db.sqlite3
 
 # Debug
 debug_output/
