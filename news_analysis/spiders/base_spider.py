@@ -86,16 +86,34 @@ class BaseSpider(ABC):
             return now()
         
         try:
+            from datetime import datetime as dt, timezone as datetime_timezone
+            from django.utils.timezone import make_aware, get_current_timezone
+            
             # 清理字符串，移除不必要的字符
             date_str = date_str.strip().replace('\n', '').replace('\r', '')
             
-            # 特殊处理36氪RSS feed的日期格式：2025-12-08 13:57:12  +0800
-            # 处理多个空格的情况
-            if re.search(r'\s+\+0800', date_str):
+            # 特殊处理36氪RSS feed的日期格式
+            # 格式1: 2025-12-08 13:57:12  +0800（带+0800时区偏移）
+            # 格式2: Wed, 08 Dec 2025 08:31:00 GMT（RSS标准格式，GMT/UTC时间）
+            
+            # 首先尝试处理RSS标准格式，这是36kr实际返回的格式
+            if re.match(r'^\w+, \d{1,2} \w+ \d{4} \d{2}:\d{2}:\d{2} GMT$', date_str):
+                # 解析RSS标准格式：Wed, 08 Dec 2025 08:31:00 GMT
+                dt_obj = dt.strptime(date_str, '%a, %d %b %Y %H:%M:%S GMT')
+                # 这个时间是GMT/UTC时间，需要转换为北京时间（UTC+8）
+                # 设置为UTC时间
+                utc_dt = dt_obj.replace(tzinfo=datetime_timezone.utc)
+                # 转换为北京时间（UTC+8）
+                beijing_dt = utc_dt.astimezone(get_current_timezone())
+                return beijing_dt
+            
+            # 处理格式1: 2025-12-08 13:57:12  +0800
+            elif re.search(r'\s+\+0800', date_str):
                 # 使用正则表达式提取不带时区的日期时间部分
                 dt_str = re.sub(r'\s+\+0800', '', date_str).strip()
                 # 解析日期时间
-                publish_time = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+                publish_time = dt.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+                # 使用Django的make_aware函数将datetime对象转换为带有时区的对象
                 return make_aware(publish_time)
             
             # 获取当前时间，使用不带时区的datetime.now()
@@ -184,8 +202,10 @@ class BaseSpider(ABC):
                 try:
                     # 移除多余的空格，保留时区前的一个空格
                     date_str_clean = re.sub(r'\s+\+', ' +', date_str)
+                    # 直接解析带有时区的日期时间
                     publish_time = datetime.strptime(date_str_clean, '%Y-%m-%d %H:%M:%S %z')
-                    return make_aware(publish_time)
+                    # 返回带有时区的datetime对象，Django会自动处理时区转换
+                    return publish_time
                 except ValueError:
                     pass
             else:
@@ -203,11 +223,19 @@ class BaseSpider(ABC):
                 
                 for fmt in date_formats:
                     try:
-                        dt = datetime.strptime(date_str, fmt)
+                        dt_obj = datetime.strptime(date_str, fmt)
                         # 如果年份不完整，添加当前年份
-                        if dt.year == 1900:
-                            dt = dt.replace(year=current_time.year)
-                        return make_aware(dt)
+                        if dt_obj.year == 1900:
+                            dt_obj = dt_obj.replace(year=current_time.year)
+                        
+                        # 检查是否为带时区的日期
+                        if hasattr(dt_obj, 'tzinfo') and dt_obj.tzinfo is not None and dt_obj.tzinfo.utcoffset(dt_obj) is not None:
+                            # 已带时区，直接返回
+                            return dt_obj
+                        else:
+                            # 不带时区，使用Django的make_aware函数将其转换为带有时区的对象
+                            # make_aware会自动使用settings.TIME_ZONE中设置的时区（上海时区，UTC+8）
+                            return make_aware(dt_obj)
                     except ValueError:
                         continue
                 

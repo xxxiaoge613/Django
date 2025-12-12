@@ -79,8 +79,8 @@
                             <div class="d-flex justify-content-between align-items-center news-meta">
                                 <div class="text-muted">
                                     <span class="badge bg-secondary">{{ item.platform }}</span>
-                                    <span class="ms-2">{{ item.publish_time|date:"Y-m-d H:i" }}</span>
-                                    <span class="ms-2">作者: {{ item.author }}</span>
+                                <span class="ms-2">{{ item.publish_time|date:"Y-m-d H:i" }}</span>
+                                <span class="ms-2">作者: {{ item.author }}</span>
                                 </div>
                                 <div>
                                     {% if item.sentiment %}
