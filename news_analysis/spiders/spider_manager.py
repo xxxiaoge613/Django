@@ -1,6 +1,4 @@
-from .quantum_bit_spider import QuantumBitSpider
 from .thirty_six_kr_spider import ThirtySixKrSpider
-from .pai_com_spider import PaiComSpider
 import logging
 import threading
 import time
@@ -12,9 +10,7 @@ class SpiderManager:
     
     def __init__(self):
         self.spiders = [
-            QuantumBitSpider(),
-            ThirtySixKrSpider(),
-            PaiComSpider()
+            ThirtySixKrSpider()
         ]
         self.is_running = False
         self.lock = threading.Lock()

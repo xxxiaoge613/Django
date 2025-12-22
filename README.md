@@ -94,10 +94,8 @@ python manage.py createsuperuser
 
 主要爬虫文件：
 - `base_spider.py`: 基础爬虫类，定义了通用爬取逻辑
-- `pai_com_spider.py`: 电商派新闻爬虫
-- `quantum_bit_spider.py`: 量子位爬虫
 - `thirty_six_kr_spider.py`: 36氪爬虫
-- `spider_manager.py`: 爬虫管理器，用于协调多个爬虫
+- `spider_manager.py`: 爬虫管理器，用于协调爬虫
 
 ### 3. 情感分析配置
 
@@ -145,7 +143,6 @@ python manage.py runspiders --platform 36kr
 
 支持的平台：
 - `36kr`: 36氪
-- `quantum_bit`: 量子位
 
 #### 启动定时爬取
 
@@ -194,9 +191,8 @@ python manage.py clear_36kr_news
 
 ### 1. 新闻爬取
 
-- 支持多个平台新闻自动爬取
+- 支持36氪平台新闻自动爬取
 - 支持定时爬取和手动爬取
-- 支持指定平台爬取
 - 自动处理网页解析和数据提取
 
 ### 2. 数据清洗
@@ -224,7 +220,7 @@ python manage.py clear_36kr_news
 
 - 情感趋势图：展示不同时间段的新闻情感分布
 - 关键词云：可视化新闻关键词的出现频率
-- 平台分布：展示不同来源平台的新闻数量
+- 新闻趋势：展示36氪平台的新闻数量变化
 - 新闻列表：按时间、情感、关键词等条件筛选新闻
 
 ### 6. 用户功能
@@ -271,8 +267,6 @@ DjangoProject/
 │   │   └── analyzer.py
 │   ├── spiders/            # 爬虫模块
 │   │   ├── base_spider.py
-│   │   ├── pai_com_spider.py
-│   │   ├── quantum_bit_spider.py
 │   │   ├── spider_manager.py
 │   │   └── thirty_six_kr_spider.py
 │   ├── utils/              # 工具函数

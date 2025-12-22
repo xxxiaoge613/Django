@@ -1,0 +1,1 @@
+& "E:\DjangoProject\.venv\Scripts\Activate.ps1"

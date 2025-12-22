@@ -25,7 +25,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--platform',
             type=str,
-            help='只运行指定平台的爬虫（可选值：36kr, quantum_bit）'
+            help='只运行指定平台的爬虫（可选值：36kr）'
         )
     
     def handle(self, *args, **options):

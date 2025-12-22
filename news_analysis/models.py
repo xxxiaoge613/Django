@@ -4,7 +4,6 @@ from django.utils import timezone
 
 # 新闻来源平台枚举
 class PlatformChoice(models.TextChoices):
-    QUANTUM_BIT = '量子位', '量子位'
     THIRTY_SIX_KR = '36kr', '36氪'
 
 # 新闻表
