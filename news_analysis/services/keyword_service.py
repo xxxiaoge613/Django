@@ -29,6 +29,19 @@ class KeywordService:
     def extract_keywords(self, text, limit=10):
         """从文本中提取关键词"""
         try:
+            import re
+            
+            # 过滤HTML标签
+            text = re.sub(r'<[^>]+>', '', text)
+            
+            # 过滤URL和图片链接
+            text = re.sub(r'http[s]?://[^\s]+', '', text)
+            
+            # 过滤图片相关的属性和路径
+            text = re.sub(r'img\.36krcdn\.com', '', text)
+            text = re.sub(r'hsossms', '', text)
+            text = re.sub(r'\w+\.jpg|\w+\.png|\w+\.gif|\w+\.bmp', '', text)
+            
             # 使用jieba分词
             words = jieba.cut(text)
             

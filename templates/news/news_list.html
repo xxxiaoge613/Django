@@ -74,7 +74,7 @@
                     <div class="card news-card">
                         <div class="card-body">
                             <h5 class="news-title"><a href="/news/{{ item.id }}/" class="news-link">{{ item.title }}</a></h5>
-                            <p class="card-text text-muted small">{{ item.content|truncatechars:150 }}</p>
+                            <p class="card-text text-muted small">{{ item.content|striptags|truncatechars:150 }}</p>
                             <div class="d-flex justify-content-between align-items-center news-meta">
                                 <div class="text-muted">
                                     <span class="badge bg-secondary">{{ item.platform }}</span>

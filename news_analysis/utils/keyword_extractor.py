@@ -21,6 +21,19 @@ def extract_keywords(text, limit=10, stopwords=None):
         list: 提取的关键词列表，每个元素包含keyword和weight
     """
     try:
+        import re
+        
+        # 过滤HTML标签
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        # 过滤URL和图片链接
+        text = re.sub(r'http[s]?://[^\s]+', '', text)
+        
+        # 过滤图片相关的属性和路径
+        text = re.sub(r'img\.36krcdn\.com', '', text)
+        text = re.sub(r'hsossms', '', text)
+        text = re.sub(r'\w+\.jpg|\w+\.png|\w+\.gif|\w+\.bmp', '', text)
+        
         # 默认停用词表
         default_stopwords = set([
             # 通用停用词

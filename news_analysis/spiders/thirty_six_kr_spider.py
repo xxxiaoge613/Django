@@ -120,7 +120,7 @@ class ThirtySixKrSpider(BaseSpider):
         logger.error(f"所有RSS源都尝试失败")
     
     def _extract_content_from_html(self, html_content):
-        """从HTML描述中提取正文内容"""
+        """从HTML描述中提取正文内容，保留图片标签"""
         if not html_content:
             return ''
         
@@ -129,15 +129,30 @@ class ThirtySixKrSpider(BaseSpider):
             # 移除所有脚本和样式
             for script in soup(['script', 'style']):
                 script.decompose()
-            # 获取文本内容，去除多余空白
-            text = soup.get_text(separator='\n')
-            return '\n'.join([line.strip() for line in text.split('\n') if line.strip()])
+            
+            # 提取文本和图片
+            content = []
+            
+            # 处理所有元素
+            for elem in soup.descendants:
+                if elem.name == 'img':
+                    # 保留图片标签
+                    img_src = elem.get('src')
+                    if img_src:
+                        content.append(f'<img src="{img_src}" alt="图片" class="news-img" />')
+                elif elem.name in ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                    # 提取段落文本
+                    text = elem.get_text(strip=True)
+                    if text:
+                        content.append(f'<{elem.name}>{text}</{elem.name}>')
+            
+            return '\n'.join(content)
         except Exception as e:
             logger.error(f"提取内容失败: {e}")
             return ''
     
     def _crawl_detail_content(self, url):
-        """爬取详情页内容"""
+        """爬取详情页内容，保留图片标签"""
         try:
             logger.info(f"爬取详情页: {url}")
             response = requests.get(url, timeout=10)
@@ -168,23 +183,23 @@ class ThirtySixKrSpider(BaseSpider):
                 if not best_content_tag:
                     best_content_tag = content_tags[0]
                 
-                text_elements = best_content_tag.find_all(['p', 'h2', 'h3', 'h4'])
-                if text_elements:
-                    valid_paragraphs = []
-                    for elem in text_elements:
+                # 提取文本和图片
+                content_parts = []
+                
+                # 处理所有元素
+                for elem in best_content_tag.descendants:
+                    if elem.name == 'img':
+                        # 保留图片标签
+                        img_src = elem.get('src')
+                        if img_src:
+                            content_parts.append(f'<img src="{img_src}" alt="图片" class="news-img" />')
+                    elif elem.name in ['p', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        # 提取段落文本
                         text = elem.get_text(strip=True, separator=' ')
                         if text and len(text) > 10:
-                            valid_paragraphs.append(text)
-                    content = '\n'.join(valid_paragraphs)
-                else:
-                    text = best_content_tag.get_text(strip=True, separator=' ')
-                    import re
-                    paragraphs = re.split(r'(?<=[。！？\.!?])\s*', text)
-                    if len(paragraphs) > 1:
-                        valid_paragraphs = [p.strip() for p in paragraphs if len(p.strip()) > 10]
-                        content = '\n'.join(valid_paragraphs)
-                    else:
-                        content = text
+                            content_parts.append(f'<{elem.name}>{text}</{elem.name}>')
+                
+                content = '\n'.join(content_parts)
             
             # 清理内容
             if content:
