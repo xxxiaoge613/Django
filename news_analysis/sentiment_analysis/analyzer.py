@@ -346,64 +346,15 @@ class SentimentAnalyzer:
     
     def analyze_from_database(self):
         """从数据库中读取新闻进行情感分析"""
-        from news_analysis.models import News, SentimentAnalysis
-        
-        logger.info("开始从数据库中分析新闻情感")
-        
-        try:
-            # 读取所有未进行情感分析的新闻 - 使用调试中验证的正确方式
-            news_list = News.objects.filter(
-                is_valid=True, 
-                is_ad=False,
-                sentiment__isnull=True
-            )
-            logger.info(f"找到 {news_list.count()} 条需要进行情感分析的新闻")
-            
-            analyzed_count = 0
-            positive_count = 0
-            negative_count = 0
-            neutral_count = 0
-            
-            for news in news_list:
-                # 分析新闻情感
-                sentiment_result = self.analyze_news_sentiment(news)
-                
-                # 保存分析结果到数据库
-                SentimentAnalysis.objects.create(
-                    news=news,
-                    sentiment_score=sentiment_result['sentiment_score'],
-                    sentiment_type=sentiment_result['sentiment_type']
-                )
-                
-                analyzed_count += 1
-                
-                # 统计情感类型
-                if sentiment_result['sentiment_type'] == '正面':
-                    positive_count += 1
-                elif sentiment_result['sentiment_type'] == '负面':
-                    negative_count += 1
-                else:
-                    neutral_count += 1
-            
-            logger.info(f"情感分析完成，共分析 {analyzed_count} 条新闻")
-            logger.info(f"正面: {positive_count}, 负面: {negative_count}, 中性: {neutral_count}")
-            
-            return {
-                'analyzed_count': analyzed_count,
-                'positive_count': positive_count,
-                'negative_count': negative_count,
-                'neutral_count': neutral_count
-            }
-        except Exception as e:
-            logger.error(f"从数据库中分析新闻情感失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return {
-                'analyzed_count': 0,
-                'positive_count': 0,
-                'negative_count': 0,
-                'neutral_count': 0
-            }
+        # 注意：此方法已被SentimentService.analyze_from_database()替代
+        # 保留此方法仅用于向后兼容
+        logger.warning("analyze_from_database()方法已被SentimentService.analyze_from_database()替代")
+        return {
+            'analyzed_count': 0,
+            'positive_count': 0,
+            'negative_count': 0,
+            'neutral_count': 0
+        }
     
     def get_sentiment_trend(self, days=7):
         """获取指定天数内的情感趋势
@@ -414,60 +365,10 @@ class SentimentAnalyzer:
         Returns:
             list: 每天的情感趋势数据
         """
-        from news_analysis.models import News, SentimentAnalysis
-        from django.utils.timezone import now
-        
-        try:
-            # 获取当前日期（仅日期部分，不含时间）
-            today = now().date()
-            
-            # 计算开始日期：days天前的日期
-            start_date = today - timedelta(days=days-1)
-            
-            # 按日期分组统计情感趋势
-            sentiment_trends = []
-            
-            for i in range(days):
-                current_date = start_date + timedelta(days=i)
-                next_date = current_date + timedelta(days=1)
-                
-                # 统计当天的新闻情感，确保包含整个日期范围（从零点到零点）
-                sentiments = SentimentAnalysis.objects.filter(
-                    news__publish_time__date=current_date
-                )
-                
-                if sentiments.exists():
-                    # 计算情感得分平均值
-                    avg_score = sum(s.sentiment_score for s in sentiments) / sentiments.count()
-                    
-                    # 统计各情感类型数量
-                    positive_count = sentiments.filter(sentiment_type='正面').count()
-                    negative_count = sentiments.filter(sentiment_type='负面').count()
-                    neutral_count = sentiments.filter(sentiment_type='中性').count()
-                    
-                    sentiment_trends.append({
-                        'date': current_date.strftime('%m-%d'),
-                        'avg_score': round(avg_score, 4),
-                        'positive_count': positive_count,
-                        'negative_count': negative_count,
-                        'neutral_count': neutral_count,
-                        'total_count': sentiments.count()
-                    })
-                else:
-                    # 即使没有新闻，也要添加该日期的记录，保持图表连续
-                    sentiment_trends.append({
-                        'date': current_date.strftime('%m-%d'),
-                        'avg_score': 0.5,  # 默认中性得分
-                        'positive_count': 0,
-                        'negative_count': 0,
-                        'neutral_count': 0,
-                        'total_count': 0
-                    })
-            
-            return sentiment_trends
-        except Exception as e:
-            logger.error(f"获取情感趋势失败: {e}")
-            return []
+        # 注意：此方法已被SentimentService.get_sentiment_trend()替代
+        # 保留此方法仅用于向后兼容
+        logger.warning("get_sentiment_trend()方法已被SentimentService.get_sentiment_trend()替代")
+        return []
     
     def get_sentiment_distribution(self):
         """获取整体情感分布
@@ -475,38 +376,15 @@ class SentimentAnalyzer:
         Returns:
             dict: 各情感类型的分布情况
         """
-        from news_analysis.models import SentimentAnalysis
-        
-        try:
-            total_count = SentimentAnalysis.objects.count()
-            
-            if total_count == 0:
-                return {
-                    'positive': 0,
-                    'negative': 0,
-                    'neutral': 0,
-                    'total': 0
-                }
-            
-            # 统计各情感类型数量
-            positive_count = SentimentAnalysis.objects.filter(sentiment_type='正面').count()
-            negative_count = SentimentAnalysis.objects.filter(sentiment_type='负面').count()
-            neutral_count = SentimentAnalysis.objects.filter(sentiment_type='中性').count()
-            
-            return {
-                'positive': positive_count,
-                'negative': negative_count,
-                'neutral': neutral_count,
-                'total': total_count,
-                'positive_ratio': round(positive_count / total_count * 100, 2),
-                'negative_ratio': round(negative_count / total_count * 100, 2),
-                'neutral_ratio': round(neutral_count / total_count * 100, 2)
-            }
-        except Exception as e:
-            logger.error(f"获取情感分布失败: {e}")
-            return {
-                'positive': 0,
-                'negative': 0,
-                'neutral': 0,
-                'total': 0
-            }
+        # 注意：此方法已被SentimentService.get_sentiment_distribution()替代
+        # 保留此方法仅用于向后兼容
+        logger.warning("get_sentiment_distribution()方法已被SentimentService.get_sentiment_distribution()替代")
+        return {
+            'positive': 0,
+            'negative': 0,
+            'neutral': 0,
+            'total': 0,
+            'positive_ratio': 0,
+            'negative_ratio': 0,
+            'neutral_ratio': 0
+        }

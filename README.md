@@ -1,466 +1,386 @@
-# 新闻分析系统
+# 新闻分析系统 README
 
-一个基于Django的新闻分析系统，支持新闻爬取、情感分析、关键词提取、数据可视化、评论、点赞和收藏等功能。
+## 1. 项目概述
 
-## 技术栈
+新闻分析系统是一个基于Django框架开发的综合性新闻数据处理平台，旨在通过自动化技术和自然语言处理算法，帮助用户从海量新闻中快速获取有价值的信息，分析新闻情感倾向，并识别热点话题。
 
-- 后端框架: Django 5.2.9
-- 数据库: SQLite (默认) / MySQL
-- 新闻爬取: Playwright
-- 情感分析: SnowNLP + 自定义分析器
-- 关键词提取: Jieba + TF-IDF
-- 数据可视化: ECharts
-- 数据处理: NumPy + SciPy + scikit-learn
+### 核心功能
+- **新闻自动采集**：基于RSS技术从36氪等平台获取最新新闻数据
+- **情感分析**：自动分析新闻情感倾向，提供情感得分和类型
+- **关键词提取**：智能提取新闻关键词，识别热点话题
+- **数据可视化**：直观展示情感趋势、关键词云和新闻发布趋势
+- **用户互动**：支持评论、点赞、收藏等功能，提供个性化标签管理
 
-## 环境要求
+### 应用场景
+- 新闻媒体分析：快速了解行业动态和热点话题
+- 舆情监测：实时监测新闻情感倾向
+- 数据分析研究：支持新闻趋势分析和模式识别
+- 个性化新闻阅读：提供个性化的新闻阅读体验
+- 学术研究：为社会舆情、媒体传播等领域提供数据支持
 
-- Python 3.8+
-- pip 20.0+
-- Node.js 14+ (可选，用于前端资源构建)
+## 2. 技术架构
 
-## 安装步骤
+### 核心技术栈
 
-### 1. 克隆项目
+| 类别 | 技术/框架 | 版本 | 用途 |
+|------|-----------|------|------|
+| 后端框架 | Django | 5.2.9 | Web应用开发框架 |
+| 数据库 | SQLite | - | 轻量级关系型数据库 |
+| 网络请求 | Requests | 2.32.3 | HTTP请求处理 |
+| HTML解析 | BeautifulSoup4 | 4.12.3 | 详情页内容提取 |
+| 自然语言处理 | SnowNLP | 0.12.3 | 中文情感分析 |
+|  | Jieba | 0.42.1 | 中文分词 |
+| 机器学习 | scikit-learn | 1.5.2 | 关键词权重计算 |
+| 科学计算 | NumPy | 2.1.1 | 数值计算支持 |
+|  | SciPy | 1.14.1 | 科学计算支持 |
 
-```bash
-git clone https://github.com/xxxiaoge613/Django.git
-cd Django
+### 架构设计
+
+系统采用分层架构设计，各层职责明确，便于维护和扩展：
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   视图层        │────▶│   服务层        │────▶│   数据访问层     │
+│  (Views)        │     │  (Services)     │     │  (Repositories) │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                          │
+                                                          ▼
+                                               ┌─────────────────┐
+                                               │   数据模型层     │
+                                               │  (Models)       │
+                                               └─────────────────┘
+                                                          │
+                                                          ▼
+                                               ┌─────────────────┐
+                                               │   数据库         │
+                                               │  (SQLite)       │
+                                               └─────────────────┘
 ```
 
-### 2. 创建虚拟环境
+## 3. 核心组件
 
+### 3.1 数据模型层
+
+**News（新闻模型）**
+- 存储新闻基本信息：标题、内容、发布时间、来源平台等
+- 与情感分析、关键词、评论、收藏等模型建立关联
+- 支持按平台、时间等维度筛选和排序
+
+**SentimentAnalysis（情感分析模型）**
+- 存储新闻情感分析结果：情感得分和类型
+- 与新闻模型建立一对一关系
+- 支持情感趋势分析和统计
+
+**Keyword（关键词模型）**
+- 存储新闻关键词及其权重
+- 与新闻模型建立一对多关系
+- 支持热点关键词识别和统计
+
+**用户互动模型**
+- Comment：评论模型，支持嵌套回复
+- Like：点赞模型，记录用户对评论的点赞
+- Collection：收藏模型，支持个性化标签管理
+- CollectionTag：收藏标签模型，支持用户自定义标签
+
+### 3.2 业务服务层
+
+**NewsService**
+- 核心业务服务，处理新闻相关所有业务逻辑
+- 提供新闻列表、详情、搜索、收藏、评论等功能
+- 协调其他服务组件，如情感分析和关键词提取
+
+**SentimentService**
+- 处理新闻情感分析相关业务
+- 提供情感趋势分析、情感统计等功能
+- 调用底层情感分析算法对新闻进行分析
+
+**KeywordService**
+- 处理新闻关键词提取和管理
+- 提供关键词权重计算、热点关键词识别等功能
+- 调用底层自然语言处理算法提取关键词
+
+**VisualizationService**
+- 处理数据可视化相关业务
+- 提供新闻统计数据、情感分布、关键词云等可视化数据
+- 支持按时间范围、平台等维度进行数据筛选
+
+### 3.3 数据采集组件
+
+**RSS爬虫系统**
+- 基于RSS技术从36氪等平台获取新闻数据
+- 配置多个RSS源作为后备机制，提高可靠性
+- 支持自动解析RSS内容和爬取详情页补充内容
+- 实现了请求延迟等反爬机制
+
+**爬虫管理器**
+- 统一管理和调度各个平台的爬虫
+- 支持并行爬取和增量更新
+- 提供爬虫运行状态监控和日志记录
+
+### 3.4 自然语言处理组件
+
+**情感分析模块**
+- 使用SnowNLP进行情感得分计算
+- 结合自定义算法将情感分为正面、负面和中性三类
+- 支持批量分析和实时分析两种模式
+
+**关键词提取模块**
+- 使用Jieba进行中文分词
+- 结合TF-IDF算法计算关键词权重
+- 支持领域词典扩展和自定义权重调整
+
+## 4. 核心功能流程
+
+### 4.1 新闻采集流程
+1. 爬虫管理器定期启动各平台爬虫
+2. 爬虫从RSS源获取新闻列表
+3. 解析RSS内容，提取新闻基本信息
+4. 对于内容不完整的新闻，爬取详情页补充内容
+5. 将新闻数据存储到数据库
+
+### 4.2 新闻处理流程
+1. 新闻入库后，自动触发情感分析
+2. 同时进行关键词提取和权重计算
+3. 将分析结果存储到对应的数据表中
+
+### 4.3 用户交互流程
+1. 用户浏览新闻列表，进行筛选和搜索
+2. 查看新闻详情，包括情感分析和关键词
+3. 发表评论、点赞或收藏新闻
+4. 管理个人收藏和评论
+
+### 4.4 数据可视化流程
+1. 用户访问可视化页面
+2. 系统从数据库获取相关统计数据
+3. 调用可视化服务生成图表数据
+4. 前端渲染图表，展示新闻统计信息
+
+## 5. 安装与配置
+
+### 环境要求
+- Python 3.10+
+- Windows 10/11, macOS 10.15+, Linux
+- 至少4GB RAM
+- 至少10GB可用磁盘空间
+
+### 安装步骤
+
+1. **克隆项目**
+   ```bash
+   git clone <repository-url>
+   cd DjangoProject
+   ```
+
+2. **创建虚拟环境**
+   ```bash
+   # Windows
+   python -m venv .venv
+   .venv\Scripts\activate
+   ```
+
+3. **安装依赖**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **初始化数据库**
+   ```bash
+   python manage.py migrate
+   ```
+
+5. **创建超级用户**
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+6. **启动开发服务器**
+   ```bash
+   python manage.py runserver
+   ```
+
+7. **访问系统**
+   - 前台地址：`http://127.0.0.1:8000/`
+   - 管理后台：`http://127.0.0.1:8000/admin/`
+
+### 配置说明
+
+#### 爬虫配置
+- 爬虫配置文件位于`news_analysis/spiders/`目录下
+- 可修改RSS源列表、爬取频率等参数
+- 支持添加新的新闻源爬虫
+
+#### 情感分析配置
+- 情感分析配置位于`news_analysis/sentiment_analysis/`目录下
+- 可调整情感阈值、分析算法等参数
+
+#### 关键词提取配置
+- 关键词提取配置位于`news_analysis/services/keyword_service.py`
+- 可调整关键词数量、权重计算方法等参数
+
+## 6. 使用指南
+
+### 6.1 新闻采集
+
+#### 运行爬虫
 ```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# Linux/Mac
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-> 注：如果安装过程中遇到问题，可以尝试升级pip后重试：
-> ```bash
-> pip install --upgrade pip
-> ```
-
-### 4. 安装Playwright浏览器
-
-```bash
-playwright install
-```
-
-### 5. 数据库迁移
-
-```bash
-python manage.py migrate
-```
-
-### 6. 创建超级用户
-
-```bash
-python manage.py createsuperuser
-```
-
-按照提示输入用户名、邮箱和密码。
-
-## 配置说明
-
-### 1. 基本配置
-
-项目的主要配置文件位于 `DjangoProject/settings.py`，可以根据需要修改以下配置：
-
-- `DEBUG`: 开发环境设为True，生产环境设为False
-- `ALLOWED_HOSTS`: 允许访问的主机名列表
-- `DATABASES`: 数据库配置
-- `STATIC_URL`: 静态文件URL
-- `MEDIA_URL` 和 `MEDIA_ROOT`: 媒体文件配置
-- `TIME_ZONE`: 时区配置（默认：Asia/Shanghai）
-
-### 2. 爬取配置
-
-新闻爬取相关配置位于 `news_analysis/spiders/` 目录下的各个爬虫文件中，可以修改：
-
-- 爬取间隔时间
-- 爬取目标网站
-- 爬取规则
-- 数据解析规则
-
-主要爬虫文件：
-- `base_spider.py`: 基础爬虫类，定义了通用爬取逻辑
-- `thirty_six_kr_spider.py`: 36氪爬虫
-- `spider_manager.py`: 爬虫管理器，用于协调爬虫
-
-### 3. 情感分析配置
-
-情感分析配置位于 `news_analysis/sentiment_analysis/analyzer.py` 中，可以调整：
-
-- 情感分析阈值（正面、负面、中性的判断标准）
-- 情感分类规则
-- 分析模型参数
-
-### 4. 数据清洗配置
-
-数据清洗配置位于 `news_analysis/data_cleaning/cleaner.py` 中，可以调整：
-
-- 清洗规则
-- 过滤条件
-- 数据标准化规则
-
-## 运行方法
-
-### 1. 启动开发服务器
-
-```bash
-python manage.py runserver
-```
-
-服务器将在 `http://127.0.0.1:8000/` 启动。
-
-### 2. 运行爬虫
-
-#### 运行所有爬虫
-
-```bash
+# 通过Django命令运行所有爬虫
 python manage.py runspiders
-```
 
-```bash
+# 通过Django命令运行指定平台爬虫
+python manage.py runspiders --platform 36kr
+
+# 通过独立脚本运行爬虫
 python run_spiders.py
 ```
 
-#### 运行指定平台爬虫
+### 6.2 新闻浏览与搜索
 
-```bash
-python manage.py runspiders --platform 36kr
-```
+1. **访问新闻列表**
+   - 打开`http://127.0.0.1:8000/news/`
+   - 可通过平台、情感类型等筛选条件缩小范围
+   - 支持关键词搜索和标题搜索两种模式
 
-支持的平台：
-- `36kr`: 36氪
+2. **查看新闻详情**
+   - 点击新闻标题进入详情页
+   - 查看新闻内容、情感分析结果和关键词
+   - 浏览其他用户的评论和点赞
 
-#### 启动定时爬取
+### 6.3 用户互动
 
-```bash
-python manage.py runspiders --scheduled --interval 3600
-```
+1. **注册与登录**
+   - 点击右上角"注册"按钮创建账号
+   - 登录后可使用完整功能
 
-- `--scheduled`: 启用定时爬取
-- `--interval`: 爬取间隔时间（秒），默认3600秒
+2. **发表评论**
+   - 在新闻详情页底部输入评论内容
+   - 点击"发表评论"按钮提交
+   - 支持回复其他用户的评论
 
-### 3. 运行数据分析命令
+3. **点赞评论**
+   - 点击评论下方的点赞按钮
+   - 再次点击可取消点赞
 
-#### 分析情感
+4. **收藏新闻**
+   - 在新闻详情页点击"收藏"按钮
+   - 可选择或创建自定义标签
+   - 在个人中心管理收藏的新闻
 
-```bash
-python manage.py analyzesentiment
-```
+### 6.4 数据可视化
 
-对所有未分析的新闻进行情感分析。
+1. **访问可视化页面**
+   - 打开`http://127.0.0.1:8000/visualization/`
 
-#### 清洗数据
+2. **查看情感趋势**
+   - 选择时间范围，查看不同时间段的情感分布
+   - 支持按平台筛选
 
-```bash
-python manage.py cleandata
-```
+3. **查看关键词云**
+   - 直观了解当前热点话题
+   - 可调整关键词数量和时间范围
 
-对爬取的新闻数据进行清洗和标准化。
+4. **查看新闻发布趋势**
+   - 了解不同平台的新闻发布情况
+   - 支持按时间维度查看
 
-#### 更新36氪新闻
+### 6.5 管理后台
 
-```bash
-python manage.py update_36kr_news
-```
+1. **登录管理后台**
+   - 打开`http://127.0.0.1:8000/admin/`
+   - 使用超级用户账号登录
 
-专门更新36氪新闻数据。
+2. **管理新闻数据**
+   - 查看、编辑、删除新闻
+   - 批量导入导出新闻数据
 
-#### 清空36氪新闻
+3. **管理用户数据**
+   - 查看、编辑、删除用户
+   - 管理用户权限
 
-```bash
-python manage.py clear_36kr_news
-```
+4. **查看分析结果**
+   - 查看情感分析和关键词提取结果
+   - 监控系统运行状态
 
-清空所有36氪新闻数据（谨慎使用）。
-
-## 主要功能
-
-### 1. 新闻爬取
-
-- 支持36氪平台新闻自动爬取
-- 支持定时爬取和手动爬取
-- 自动处理网页解析和数据提取
-
-### 2. 数据清洗
-
-- 自动清洗爬取的新闻数据
-- 去除重复内容
-- 标准化数据格式
-- 过滤无效数据
-
-### 3. 情感分析
-
-- 基于SnowNLP的情感分析
-- 支持正面、负面、中性三类情感分类
-- 自动计算情感得分
-- 支持批量分析
-
-### 4. 关键词提取
-
-- 基于Jieba和TF-IDF的关键词提取
-- 自动计算关键词权重
-- 支持批量提取
-- 关键词可视化展示
-
-### 5. 数据可视化
-
-- 情感趋势图：展示不同时间段的新闻情感分布
-- 关键词云：可视化新闻关键词的出现频率
-- 新闻趋势：展示36氪平台的新闻数量变化
-- 新闻列表：按时间、情感、关键词等条件筛选新闻
-
-### 6. 用户功能
-
-- 用户注册、登录和注销
-- 个人资料管理
-- 新闻评论和回复
-- 新闻点赞
-- 新闻收藏和标签管理
-
-### 7. 内容管理
-
-- 后台管理界面
-- 新闻内容审核
-- 评论管理
-- 数据统计和分析
-
-## 项目结构
+## 7. 项目结构
 
 ```
 DjangoProject/
 ├── DjangoProject/          # 项目配置目录
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── news_analysis/          # 新闻分析应用
-│   ├── data_cleaning/      # 数据清洗模块
-│   │   └── cleaner.py
-│   ├── forms/              # 表单定义
-│   │   └── auth_forms.py
-│   ├── management/         # 自定义管理命令
-│   │   └── commands/
-│   │       ├── analyzesentiment.py
-│   │       ├── cleandata.py
-│   │       ├── clear_36kr_news.py
-│   │       ├── runspiders.py
-│   │       └── update_36kr_news.py
-│   ├── middleware/         # 中间件
-│   │   └── register_rate_limit.py
-│   ├── migrations/         # 数据库迁移文件
-│   ├── sentiment_analysis/ # 情感分析模块
-│   │   └── analyzer.py
-│   ├── spiders/            # 爬虫模块
-│   │   ├── base_spider.py
-│   │   ├── spider_manager.py
-│   │   └── thirty_six_kr_spider.py
-│   ├── utils/              # 工具函数
-│   │   └── keyword_extractor.py
-│   ├── views/              # 视图函数
-│   │   ├── __init__.py
-│   │   ├── auth_views.py
-│   │   ├── news_views.py
-│   │   ├── profile_views.py
-│   │   └── visualization_views.py
-│   ├── __init__.py
-│   ├── admin.py
-│   ├── apps.py
+│   ├── settings.py         # 项目配置文件
+│   ├── urls.py             # 主URL配置
+│   └── wsgi.py             # WSGI配置
+├── news_analysis/          # 主应用目录
+│   ├── admin.py            # 后台管理配置
+│   ├── apps.py             # 应用配置
 │   ├── models.py           # 数据模型
-│   ├── tests.py            # 测试文件
-│   └── urls.py             # 应用URL配置
-├── templates/              # HTML模板
-│   ├── auth/               # 认证相关模板
-│   │   ├── login.html
-│   │   └── register.html
-│   ├── base/               # 基础模板
-│   │   └── base.html
-│   ├── news/               # 新闻相关模板
-│   │   ├── collections.html
-│   │   ├── news_detail.html
-│   │   └── news_list.html
-│   ├── profile/            # 用户资料模板
-│   │   ├── collections.html
-│   │   ├── comments.html
-│   │   ├── edit_comment.html
-│   │   └── index.html
-│   ├── visualization/      # 可视化模板
-│   │   ├── dashboard.html
-│   │   ├── keyword_cloud.html
-│   │   ├── platform_distribution.html
-│   │   └── sentiment_trend.html
-│   ├── base.html
-│   └── home.html
-├── .gitignore              # Git忽略文件
-├── manage.py               # Django管理命令入口
-├── pyproject.toml          # Python项目配置
-├── README.md               # 项目说明文档
-└── requirements.txt        # 项目依赖
+│   ├── urls.py             # 应用URL配置
+│   ├── data_cleaning/      # 数据清洗模块
+│   ├── middleware/         # 中间件
+│   ├── repositories/       # 数据访问层
+│   ├── sentiment_analysis/ # 情感分析模块
+│   ├── services/           # 业务服务层
+│   ├── spiders/            # 爬虫模块
+│   ├── utils/              # 工具函数
+│   └── views/              # 视图模块
+├── templates/              # 模板文件
+├── logs/                   # 日志目录
+├── test/                   # 测试文件
+├── manage.py               # 项目管理脚本
+├── requirements.txt        # 依赖列表
+└── README.md               # 项目说明文档
 ```
 
-## 开发指南
+## 8. 开发指南
 
-### 1. 创建新的爬虫
+### 8.1 编码规范
 
-在 `news_analysis/spiders/` 目录下创建新的爬虫类，继承自 `BaseSpider`，并实现以下方法：
+- 遵循PEP 8编码规范
+- 使用4个空格进行缩进
+- 类名使用大驼峰命名法
+- 函数名和变量名使用小驼峰命名法或下划线分隔
+- 常量名使用全大写加下划线分隔
 
-```python
-from news_analysis.spiders.base_spider import BaseSpider
+### 8.2 添加新的新闻源
 
-class NewSpider(BaseSpider):
-    platform_name = "new_platform"  # 平台名称
-    start_urls = ["https://example.com/news"]  # 起始URL
-    
-    def parse_news_list(self, page_source):
-        # 解析新闻列表页面，返回新闻详情页URL列表
-        pass
-    
-    def parse_news_detail(self, page_source, url):
-        # 解析新闻详情页，返回新闻数据字典
-        pass
-```
+1. 在`news_analysis/spiders/`目录下创建新的爬虫文件
+2. 继承`BaseSpider`类，实现`crawl_news_list`方法
+3. 在`spider_manager.py`中注册新的爬虫
+4. 测试爬虫功能
 
-### 2. 扩展情感分析功能
+### 8.3 添加新的情感分析算法
 
-修改 `news_analysis/sentiment_analysis/analyzer.py` 文件，添加新的情感分析规则或调整现有规则：
+1. 在`news_analysis/sentiment_analysis/`目录下创建新的分析模块
+2. 实现`analyze_text`方法，返回情感得分和类型
+3. 在`SentimentService`中集成新的分析算法
+4. 测试情感分析功能
 
-```python
-def analyze_sentiment(self, text):
-    # 情感分析逻辑
-    # 可以添加自定义的情感词库或规则
-    pass
-```
+### 8.4 运行测试
 
-### 3. 添加新的数据清洗规则
-
-修改 `news_analysis/data_cleaning/cleaner.py` 文件，添加新的数据清洗规则：
-
-```python
-def clean_news(self, news):
-    # 数据清洗逻辑
-    # 可以添加自定义的清洗规则
-    pass
-```
-
-### 4. 添加新的可视化图表
-
-在 `templates/visualization/` 目录下创建新的模板文件，使用ECharts实现数据可视化：
-
-```html
-{% extends 'base/base.html' %}
-
-{% block content %}
-<div class="visualization-container">
-    <h2>新图表标题</h2>
-    <div id="chart" style="width: 100%; height: 400px;"></div>
-</div>
-
-<script type="text/javascript">
-    // ECharts配置代码
-    var myChart = echarts.init(document.getElementById('chart'));
-    var option = {
-        // 图表配置
-    };
-    myChart.setOption(option);
-</script>
-{% endblock %}
-```
-
-### 5. 添加新的管理命令
-
-在 `news_analysis/management/commands/` 目录下创建新的命令文件：
-
-```python
-from django.core.management.base import BaseCommand
-
-class Command(BaseCommand):
-    help = '新命令的描述'
-    
-    def add_arguments(self, parser):
-        # 添加命令行参数
-        pass
-    
-    def handle(self, *args, **options):
-        # 命令处理逻辑
-        pass
-```
-
-## 常见问题解答
-
-### Q: 爬取新闻时提示浏览器未安装？
-A: 请确保已运行 `playwright install` 命令安装所需的浏览器。
-
-### Q: 情感分析结果不准确？
-A: 可以尝试调整 `analyzer.py` 中的情感分析阈值，或添加自定义的情感词库。
-
-### Q: 关键词提取结果不理想？
-A: 可以尝试调整关键词提取的参数，或添加自定义的停用词表。
-
-### Q: 开发服务器无法启动？
-A: 请检查是否有其他进程占用了8000端口，或尝试使用其他端口启动：
 ```bash
-python manage.py runserver 8001
+# 运行所有测试
+python manage.py test
+
+# 运行特定应用的测试
+python manage.py test news_analysis
+
+# 运行特定测试文件
+python manage.py test news_analysis.tests
 ```
 
-### Q: 数据库连接失败？
-A: 请检查 `settings.py` 中的数据库配置是否正确，确保数据库服务已启动。
+## 9. 技术亮点
 
-## 版本历史记录
+1. **高效的RSS爬虫系统**：采用RSS技术获取新闻数据，具有更高的效率和可靠性
+2. **多维度情感分析**：结合SnowNLP和自定义算法，实现准确的情感分析
+3. **智能关键词提取**：使用Jieba和TF-IDF算法，实现高效准确的关键词提取
+4. **响应式数据可视化**：提供丰富的数据可视化图表，直观展示新闻数据
+5. **良好的用户体验**：支持个性化收藏、标签管理、嵌套评论等功能
+6. **可扩展的架构设计**：模块化设计，便于添加新的新闻源、分析算法或可视化组件
 
-### v2.0.0 (2025-12-11)
-- 升级Django至5.2.9版本
-- 替换Scrapy为Playwright爬虫
-- 新增数据清洗模块
-- 增强情感分析功能
-- 新增用户评论和点赞功能
-- 新增新闻收藏和标签管理
-- 优化数据可视化界面
-- 完善后台管理功能
+## 10. 许可证
 
-### v1.0.0 (2025-11-29)
-- 初始版本发布
-- 支持基本的新闻爬取
-- 实现情感分析功能
-- 支持关键词提取
-- 基础的数据可视化
+本项目采用MIT许可证，详见LICENSE文件。
 
-## 贡献说明
-
-欢迎提交Issue和Pull Request！
-
-### 提交Pull Request前请确保：
-
-1. 代码符合PEP 8规范
-2. 添加了必要的测试
-3. 更新了相关文档
-4. 通过了所有测试
-5. 描述清晰的提交信息
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，请通过以下方式联系：
-
-- GitHub Issues: https://github.com/xxxiaoge613/Django/issues
-- Email: your-email@example.com
 
 ---
 
-感谢使用新闻分析系统！
+**更新日期**：2025-12-31
+**版本**：1.0.0
