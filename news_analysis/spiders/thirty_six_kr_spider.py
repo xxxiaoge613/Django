@@ -15,8 +15,8 @@ class ThirtySixKrSpider(BaseSpider):
         self.base_url = 'https://36kr.com'
         # 配置多个RSS源，优先尝试RSSHub链接
         self.rss_urls = [
-            'https://rsshub.rssforever.com/36kr/news',  # RSSHub实例
-            'https://36kr.com/feed'  # 原始RSS链接作为fallback
+            'https://rsshub.rssforever.com/36kr/news',  # RSSHub实例 - 已验证可用
+            'https://36kr.com/feed'  # 官方RSS源作为备用
         ]
         # 当前使用的RSS源索引
         self.current_rss_index = 0
@@ -28,17 +28,19 @@ class ThirtySixKrSpider(BaseSpider):
                 logger.info(f"开始抓取36kr RSS feed (源 {i+1}/{len(self.rss_urls)}): {rss_url}")
                 
                 # 获取RSS内容
-                response = requests.get(rss_url, timeout=10)
+                response = requests.get(rss_url, timeout=30)  # 增加超时时间到30秒
                 response.raise_for_status()  # 检查请求是否成功
                 
                 # 解析RSS - 使用标准库xml.etree.ElementTree
                 root = ET.fromstring(response.text)
                 
-                # 查找所有item元素
-                items = []
-                for elem in root.iter():
-                    if elem.tag.endswith('item') or elem.tag == 'item':
-                        items.append(elem)
+                # 根据RSS源类型选择不同的解析方法
+                if "rsshub.rssforever.com" in rss_url:
+                    # RSSHub源处理逻辑
+                    items = self._parse_rsshub_items(root)
+                else:
+                    # 36kr.com/feed源处理逻辑
+                    items = self._parse_36kr_feed_items(root)
                 
                 logger.info(f"获取到 {len(items)} 篇文章")
                 
@@ -52,13 +54,15 @@ class ThirtySixKrSpider(BaseSpider):
                         description = ''
                         
                         for child in item:
-                            if child.tag.endswith('title') or child.tag == 'title':
+                            tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+                            
+                            if tag == 'title':
                                 title = child.text.strip() if child.text else ''
-                            if child.tag.endswith('link') or child.tag == 'link':
+                            if tag == 'link':
                                 link = child.text if child.text else ''
-                            if child.tag.endswith('pubDate') or child.tag == 'pubDate':
+                            if tag == 'pubDate':
                                 pub_date = child.text if child.text else ''
-                            if child.tag.endswith('description') or child.tag == 'description':
+                            if tag == 'description':
                                 description = child.text if child.text else ''
                         
                         if not title or not link:
@@ -133,14 +137,16 @@ class ThirtySixKrSpider(BaseSpider):
             # 提取文本和图片
             content = []
             
-            # 处理所有元素
-            for elem in soup.descendants:
+            # 获取所有需要的标签，不使用descendants避免获取多余内容
+            text_elements = soup.find_all(['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img'])
+            
+            for elem in text_elements:
                 if elem.name == 'img':
                     # 保留图片标签
                     img_src = elem.get('src')
                     if img_src:
                         content.append(f'<img src="{img_src}" alt="图片" class="news-img" />')
-                elif elem.name in ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                else:
                     # 提取段落文本
                     text = elem.get_text(strip=True)
                     if text:
@@ -150,6 +156,23 @@ class ThirtySixKrSpider(BaseSpider):
         except Exception as e:
             logger.error(f"提取内容失败: {e}")
             return ''
+    
+    def _parse_rsshub_items(self, root):
+        """解析RSSHub源的items元素"""
+        items = []
+        for elem in root.iter():
+            if elem.tag.endswith('item') or elem.tag == 'item':
+                items.append(elem)
+        return items
+    
+    def _parse_36kr_feed_items(self, root):
+        """解析36kr.com/feed源的items元素"""
+        items = []
+        # 36kr.com/feed使用标准RSS 2.0格式，没有复杂命名空间
+        for channel in root.findall('channel'):
+            for item in channel.findall('item'):
+                items.append(item)
+        return items
     
     def _crawl_detail_content(self, url):
         """爬取详情页内容，保留图片标签"""
@@ -186,14 +209,16 @@ class ThirtySixKrSpider(BaseSpider):
                 # 提取文本和图片
                 content_parts = []
                 
-                # 处理所有元素
-                for elem in best_content_tag.descendants:
+                # 获取所有需要的标签，不使用descendants避免获取下一篇
+                text_elements = best_content_tag.find_all(['p', 'h2', 'h3', 'h4', 'h5', 'h6', 'img'])
+                
+                for elem in text_elements:
                     if elem.name == 'img':
                         # 保留图片标签
                         img_src = elem.get('src')
                         if img_src:
                             content_parts.append(f'<img src="{img_src}" alt="图片" class="news-img" />')
-                    elif elem.name in ['p', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                    else:
                         # 提取段落文本
                         text = elem.get_text(strip=True, separator=' ')
                         if text and len(text) > 10:
