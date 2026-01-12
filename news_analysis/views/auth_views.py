@@ -1,9 +1,8 @@
 from django.shortcuts import render, redirect, reverse
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from news_analysis.forms.auth_forms import CustomUserCreationForm
+from news_analysis.forms.auth_forms import CustomUserCreationForm, CustomLoginForm
 
 # 注册视图
 def register(request):
@@ -27,18 +26,26 @@ def register(request):
 def login_view(request):
     """用户登录视图"""
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
+        form = CustomLoginForm(request, data=request.POST)
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
+            remember = form.cleaned_data.get('remember')
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
+                # 处理记住我功能
+                if remember:
+                    # 设置长时间的会话过期时间（例如30天）
+                    request.session.set_expiry(60 * 60 * 24 * 30)
+                else:
+                    # 使用默认的会话过期时间（浏览器关闭时过期）
+                    request.session.set_expiry(0)
                 messages.success(request, f'欢迎回来，{username}！')
                 return redirect('news_list')
         messages.error(request, '登录失败，用户名或密码错误。')
     else:
-        form = AuthenticationForm()
+        form = CustomLoginForm()
     
     return render(request, 'auth/login.html', {'form': form})
 

@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.http import JsonResponse
 from news_analysis.services.news_service import NewsService
 from news_analysis.services.sentiment_service import SentimentService
 from news_analysis.services.visualization_service import VisualizationService
@@ -97,6 +98,19 @@ def collect_news(request, pk):
     else:
         messages.success(request, '已取消收藏该新闻。')
     
+    # 如果是AJAX请求，返回JSON响应
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        news = news_service.get_news_by_id(pk)
+        # 提取消息内容
+        messages_list = []
+        for message in messages.get_messages(request):
+            messages_list.append(str(message))
+        return JsonResponse({
+            'is_collected': is_collected,
+            'collections_count': news.collections.count(),
+            'message': messages_list
+        })
+    
     return redirect('news_detail', pk=pk)
 
 # 添加评论视图
@@ -109,10 +123,49 @@ def add_comment(request, pk):
         
         if content:
             # 使用服务层添加评论
-            news_service.add_comment(pk, request.user, content, parent_id)
+            comment = news_service.add_comment(pk, request.user, content, parent_id)
             messages.success(request, '评论成功！')
         else:
             messages.error(request, '评论内容不能为空。')
+    
+    # 如果是AJAX请求，返回JSON响应
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        news = news_service.get_news_by_id(pk)
+        total_comments = news_service.get_total_comments_by_news_id(pk)
+        
+        if content:
+            # 构造评论数据
+            comment_data = {
+                'id': comment.id,
+                'user': comment.user.username,
+                'content': comment.content,
+                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+                'parent_id': comment.parent.id if comment.parent else None,
+                'likes_count': 0,
+                'is_liked': False
+            }
+            
+            # 提取消息内容
+            messages_list = []
+            for message in messages.get_messages(request):
+                messages_list.append(str(message))
+            
+            return JsonResponse({
+                'success': True,
+                'comment': comment_data,
+                'total_comments': total_comments,
+                'message': messages_list
+            })
+        else:
+            # 提取消息内容
+            messages_list = []
+            for message in messages.get_messages(request):
+                messages_list.append(str(message))
+            
+            return JsonResponse({
+                'success': False,
+                'message': messages_list
+            })
     
     return redirect('news_detail', pk=pk)
 
@@ -121,9 +174,21 @@ def add_comment(request, pk):
 def like_comment(request, pk):
     """点赞/取消点赞评论"""
     # 使用服务层切换点赞状态
-    news_service.toggle_like(pk, request.user)
+    is_liked = news_service.toggle_like(pk, request.user)
     
-    return redirect('news_detail', pk=request.POST.get('news_id'))
+    # 获取评论对象
+    comment = news_service.get_comment_by_id(pk)
+    
+    # 如果是AJAX请求，返回JSON响应
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'comment_id': pk,
+            'is_liked': is_liked,
+            'likes_count': comment.likes.count()
+        })
+    
+    return redirect('news_detail', pk=comment.news.id)
 
 # 用户收藏列表视图
 @login_required

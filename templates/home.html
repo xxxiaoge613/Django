@@ -1,6 +1,6 @@
 {% extends 'base/base.html' %}
 
-{% block title %}财经新闻数据分析可视化{% endblock %}
+{% block title %}36氪平台新闻数据分析可视化{% endblock %}
 
 {% block content %}
     <!-- 数据准备：将Python对象转换为JSON字符串 -->
@@ -11,8 +11,8 @@
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-md-8 text-center">
-                    <h1 class="mb-3">财经新闻数据分析可视化</h1>
-                    <p class="mb-5">实时监控财经新闻情感趋势、平台分布和热门关键词</p>
+                    <h1 class="mb-3">36氪平台新闻数据分析可视化</h1>
+                    <p class="mb-5">实时监控36氪平台新闻情感趋势、新闻数量和热门关键词</p>
                     <!-- 搜索框 -->
                     <form action="{% url 'news_list' %}" method="get" class="d-flex justify-content-center align-items-center" style="max-width: 700px; margin: 0 auto;">
                         <select name="search_mode" class="form-select" style="width: 100px; border: 1px solid #ced4da; border-radius: 0.375rem 0 0 0.375rem; background-color: white;">
@@ -41,21 +41,14 @@
     <div class="container mt-5">
         <div class="row justify-content-center">
             <!-- 总新闻数 -->
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="dashboard-card bg-primary text-white text-center p-4 rounded-lg shadow">
                     <div class="display-4 mb-2">{{ news_stats.total_news }}</div>
                     <div class="h5">总新闻数</div>
                 </div>
             </div>
-            <!-- 有效新闻数 -->
-            <div class="col-md-3">
-                <div class="dashboard-card bg-success text-white text-center p-4 rounded-lg shadow">
-                    <div class="display-4 mb-2">{{ news_stats.valid_news }}</div>
-                    <div class="h5">有效新闻数</div>
-                </div>
-            </div>
             <!-- 今日新增 -->
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="dashboard-card bg-info text-white text-center p-4 rounded-lg shadow">
                     <div class="display-4 mb-2">{{ news_stats.today_news }}</div>
                     <div class="h5">今日新增</div>

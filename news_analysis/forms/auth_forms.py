@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import re
@@ -44,3 +44,7 @@ class CustomUserCreationForm(UserCreationForm):
             raise ValidationError("用户名只能包含字母、数字和下划线")
         
         return username
+
+class CustomLoginForm(AuthenticationForm):
+    """自定义登录表单，添加记住我功能"""
+    remember = forms.BooleanField(required=False, label='记住我')

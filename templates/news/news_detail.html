@@ -50,11 +50,11 @@
                 <div>
                     {% if user.is_authenticated %}
                         {% if is_collected %}
-                            <a href="{% url 'collect_news' news.id %}" class="btn btn-secondary">
+                            <a href="{% url 'collect_news' news.id %}" class="btn btn-secondary" data-collect="true">
                                 <i class="bi bi-bookmark-fill"></i> 已收藏
                             </a>
                         {% else %}
-                            <a href="{% url 'collect_news' news.id %}" class="btn btn-primary">
+                            <a href="{% url 'collect_news' news.id %}" class="btn btn-primary" data-collect="false">
                                 <i class="bi bi-bookmark"></i> 收藏
                             </a>
                         {% endif %}
@@ -258,6 +258,262 @@
                     replyForm.querySelector('textarea').value = '';
                 });
             });
+        });
+    </script>
+    
+    <script>
+        // 调试日志
+        console.log('DOM加载完成，开始执行AJAX处理代码');
+        
+        // AJAX处理收藏、评论、点赞功能
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('事件监听器已绑定');
+            
+            // 定义基础URLs
+            const baseLikeUrl = "{% url 'like_comment' 0 %}";
+            console.log('基础点赞URL:', baseLikeUrl);
+            
+            // 收藏按钮事件
+            const collectBtn = document.querySelector('a[href*="/collect/"]');
+            console.log('找到收藏按钮:', collectBtn);
+            if (collectBtn) {
+                collectBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = this.getAttribute('href');
+                    
+                    fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 更新收藏按钮状态
+                        if (data.is_collected) {
+                            this.classList.remove('btn-primary');
+                            this.classList.add('btn-secondary');
+                            this.innerHTML = '<i class="bi bi-bookmark-fill"></i> 已收藏';
+                        } else {
+                            this.classList.remove('btn-secondary');
+                            this.classList.add('btn-primary');
+                            this.innerHTML = '<i class="bi bi-bookmark"></i> 收藏';
+                        }
+                        
+                        // 更新收藏数
+                        const collectionsCount = document.querySelector('span:contains("收藏数:")');
+                        if (collectionsCount) {
+                            collectionsCount.textContent = `收藏数: ${data.collections_count}`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('收藏失败:', error);
+                    });
+                });
+            }
+            
+            // 评论表单提交事件
+            const commentForms = document.querySelectorAll('form');
+            console.log('找到所有表单:', commentForms);
+            
+            commentForms.forEach(form => {
+                const action = form.getAttribute('action');
+                if (action && action.includes('/comment/')) {
+                    console.log('找到评论表单:', form);
+                    form.addEventListener('submit', function(e) {
+                        console.log('评论表单提交事件被触发');
+                        e.preventDefault();
+                        console.log('默认提交行为已阻止');
+                        
+                        const url = this.getAttribute('action');
+                        const formData = new FormData(this);
+                        
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData,
+                            credentials: 'same-origin'
+                        })
+                        .then(response => {
+                            console.log('评论请求响应:', response);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('评论响应数据:', data);
+                            if (data.success) {
+                                // 清空评论输入框
+                                const textarea = this.querySelector('textarea');
+                                if (textarea) {
+                                    textarea.value = '';
+                                }
+                                
+                                // 更新评论数
+                                const commentsCountSpan = document.querySelector('span');
+                                const allSpans = document.querySelectorAll('span');
+                                let commentsCount;
+                                allSpans.forEach(span => {
+                                    if (span.textContent.includes('评论数:')) {
+                                        commentsCount = span;
+                                    }
+                                });
+                                if (commentsCount) {
+                                    commentsCount.textContent = `评论数: ${data.total_comments}`;
+                                    console.log('评论数已更新:', data.total_comments);
+                                }
+                                
+                                // 如果是顶级评论，添加到评论列表
+                                if (!data.comment.parent_id) {
+                                    const commentsList = document.querySelector('.comments-list');
+                                    if (commentsList) {
+                                        const commentUrl = "{% url 'like_comment' 0 %}".replace("0", data.comment.id);
+                                        const commentHtml = `
+                                            <div class="comment-item mb-3 p-3 border rounded">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <strong>${data.comment.user}</strong>
+                                                        <span class="text-muted ms-2">${data.comment.created_at}</span>
+                                                    </div>
+                                                    <div>
+                                                        <button class="btn btn-sm btn-outline-primary reply-btn" data-comment-id="${data.comment.id}">回复</button>
+                                                        <a href="${commentUrl}" class="btn btn-sm btn-outline-secondary">
+                                                            <i class="bi bi-heart-fill"></i> ${data.comment.likes_count}
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                <div class="comment-content mt-2">
+                                                    ${data.comment.content}
+                                                </div>
+                                                
+                                                <!-- 回复表单 -->
+                                                <div class="reply-form mt-3" id="reply-form-${data.comment.id}" style="display: none;">
+                                                    <form method="post" action="${action}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="parent_id" value="${data.comment.id}">
+                                                        <div class="mb-3">
+                                                            <textarea class="form-control" name="content" rows="2" placeholder="写下你的回复..."></textarea>
+                                                        </div>
+                                                        <div class="d-flex justify-content-end">
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary me-2 cancel-reply" data-comment-id="${data.comment.id}">取消</button>
+                                                            <button type="submit" class="btn btn-sm btn-primary">发布回复</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                                
+                                                <!-- 回复列表 -->
+                                                <div class="replies-list mt-3 ms-4 border-start ps-3"></div>
+                                            </div>
+                                        `;
+                                        commentsList.insertAdjacentHTML('afterbegin', commentHtml);
+                                        console.log('新评论已添加到列表顶部');
+                                        
+                                        // 重新绑定事件处理程序
+                                        bindReplyEvents();
+                                    }
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('评论失败:', error);
+                        });
+                    });
+                }
+            });
+            
+            // 点赞按钮事件
+            const allLinks = document.querySelectorAll('a');
+            console.log('找到所有链接:', allLinks);
+            
+            allLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href.includes('/comment/') && href.includes('/like/')) {
+                    console.log('找到点赞按钮:', link);
+                    link.addEventListener('click', function(e) {
+                        console.log('点赞按钮点击事件被触发');
+                        e.preventDefault();
+                        console.log('默认跳转行为已阻止');
+                        
+                        const url = this.getAttribute('href');
+                        
+                        fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            credentials: 'same-origin'
+                        })
+                        .then(response => {
+                            console.log('点赞请求响应:', response);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('点赞响应数据:', data);
+                            if (data.success) {
+                                // 更新点赞按钮状态
+                                if (data.is_liked) {
+                                    this.classList.remove('btn-outline-secondary');
+                                    this.classList.add('btn-danger');
+                                    console.log('点赞按钮变为已点赞状态');
+                                } else {
+                                    this.classList.remove('btn-danger');
+                                    this.classList.add('btn-outline-secondary');
+                                    console.log('点赞按钮变为未点赞状态');
+                                }
+                                
+                                // 更新点赞数
+                                const likeCount = this.querySelector('i + span');
+                                if (likeCount) {
+                                    likeCount.textContent = data.likes_count;
+                                } else {
+                                    // 如果没有单独的span，更新按钮文本
+                                    this.innerHTML = `<i class="bi bi-heart-fill"></i> ${data.likes_count}`;
+                                }
+                                console.log('点赞数已更新:', data.likes_count);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('点赞失败:', error);
+                        });
+                    });
+                }
+            });
+            
+            // 重新绑定回复事件处理程序
+            function bindReplyEvents() {
+                // 回复按钮事件
+                const replyBtns = document.querySelectorAll('.reply-btn');
+                replyBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const commentId = this.getAttribute('data-comment-id');
+                        const replyForm = document.getElementById(`reply-form-${commentId}`);
+                        
+                        // 隐藏所有其他回复表单
+                        document.querySelectorAll('.reply-form').forEach(form => {
+                            form.style.display = 'none';
+                        });
+                        
+                        // 显示当前回复表单
+                        replyForm.style.display = 'block';
+                    });
+                });
+                
+                // 取消回复按钮事件
+                const cancelReplyBtns = document.querySelectorAll('.cancel-reply');
+                cancelReplyBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const commentId = this.getAttribute('data-comment-id');
+                        const replyForm = document.getElementById(`reply-form-${commentId}`);
+                        
+                        // 隐藏回复表单
+                        replyForm.style.display = 'none';
+                        
+                        // 清空文本框
+                        replyForm.querySelector('textarea').value = '';
+                    });
+                });
+            }
         });
     </script>
 {% endblock %}

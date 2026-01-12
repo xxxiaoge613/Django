@@ -75,6 +75,10 @@ class NewsService:
         news = self.news_repo.get_news_by_id(news_id)
         return self.collection_repo.toggle_collection(news, user)
     
+    def get_news_by_id(self, news_id):
+        """根据ID获取新闻"""
+        return self.news_repo.get_news_by_id(news_id)
+    
     def add_comment(self, news_id, user, content, parent_id=None):
         """添加评论"""
         news = self.news_repo.get_news_by_id(news_id)
@@ -89,6 +93,14 @@ class NewsService:
         """切换评论点赞状态"""
         comment = self.comment_repo.get_comment_by_id(comment_id)
         return self.comment_repo.toggle_like(comment, user)
+    
+    def get_comment_by_id(self, comment_id):
+        """根据ID获取评论"""
+        return self.comment_repo.get_comment_by_id(comment_id)
+    
+    def get_total_comments_by_news_id(self, news_id):
+        """获取新闻的评论总数"""
+        return self.comment_repo.get_total_comments_by_news_id(news_id)
     
     def get_user_collections(self, user, page=1, page_size=10):
         """获取用户收藏列表"""
